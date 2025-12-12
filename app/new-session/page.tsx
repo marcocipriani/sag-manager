@@ -193,7 +193,7 @@ export default function NewSessionPage() {
     try {
       const today = new Date().toISOString().split('T')[0]
       
-      // A. Gestione Track Day (Crea se non esiste oggi per questo circuito)
+      // A. Gestione Track Day
       let { data: trackDay } = await supabase
         .from('track_days')
         .select('id')
@@ -217,6 +217,11 @@ export default function NewSessionPage() {
         if (tdError) throw tdError
         trackDay = newTrackDay
       }
+      
+      if (!trackDay) {
+        throw new Error("Impossibile creare o recuperare la giornata (Track Day null).");
+      }
+      // ----------------------
 
       // B. Calcolo Numero Sessione
       const { count } = await supabase
