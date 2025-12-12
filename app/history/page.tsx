@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { addSessionToPDF } from "@/lib/pdf-utils"
@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 import jsPDF from "jspdf"
 
+// ... Definizioni Tipi ...
 type SessionSummary = { id: string, name: string, session_number: number, created_at: string }
 type TrackDay = {
   id: string, date: string, circuit_name: string,
@@ -20,7 +21,8 @@ type TrackDay = {
   sessions: SessionSummary[]
 }
 
-export default function HistoryPage() {
+// 1. Spostiamo la logica in un componente interno
+function HistoryContent() {
   const supabase = createClient()
   const [loading, setLoading] = useState(true)
   const [history, setHistory] = useState<TrackDay[]>([])
@@ -58,47 +60,45 @@ export default function HistoryPage() {
   const handlePrintDay = async (dayId: string, dateStr: string) => {
     setDownloadingId(dayId)
     try {
-      // 1. Scarichiamo TUTTI i dati
       const { data: fullSessions, error } = await supabase
         .from('sessions')
         .select(`*, track_days ( date, circuit_name, rider_weight, bike:bikes(brand, model) )`)
         .eq('track_day_id', dayId)
         .order('session_number', { ascending: true })
 
-      if (error || !fullSessions) throw new Error("Errore download dati")
-
-      if (fullSessions.length === 0) {
+      if (error || !fullSessions || fullSessions.length === 0) {
         toast.warning("Nessuna sessione da stampare")
         return
       }
 
-      // 2. Generiamo il PDF
       const doc = new jsPDF()
-      
       fullSessions.forEach((session, index) => {
         if (index > 0) doc.addPage();
         addSessionToPDF(doc, session);
       })
 
-      // --- NUOVA LOGICA NOME FILE ---
-      // dateStr dal DB è già YYYY-MM-DD
       const fileName = `SagManager-${dateStr}.pdf`;
-
       doc.save(fileName)
-      toast.success("Report giornaliero scaricato", { description: fileName })
+      toast.success("Report scaricato", { description: fileName })
 
     } catch (err) {
-      toast.error("Errore generazione PDF")
+      toast.error("Errore PDF")
       console.error(err)
     } finally {
       setDownloadingId(null)
     }
   }
 
-  if (loading) return <PageLayout title="Storico"><div className="pt-20 flex justify-center"><Loader2 className="animate-spin" /></div></PageLayout>
+  if (loading) {
+    return (
+      <div className="pt-20 flex justify-center">
+        <Loader2 className="animate-spin text-green-600" />
+      </div>
+    )
+  }
 
   return (
-    <PageLayout title="Storico Giornate">
+    <>
       {history.length === 0 ? (
         <div className="text-center py-10 text-slate-500">
           <p>Nessuna giornata registrata.</p>
@@ -107,7 +107,6 @@ export default function HistoryPage() {
         <div className="space-y-8">
           {history.map((day) => (
             <div key={day.id} className="space-y-3">
-              
               <div className="flex items-center justify-between px-1">
                 <div className="flex items-center gap-3">
                   <div className="bg-slate-900 dark:bg-green-900/30 text-white dark:text-green-400 p-2.5 rounded-xl shadow-sm">
@@ -124,14 +123,12 @@ export default function HistoryPage() {
                     </div>
                   </div>
                 </div>
-
                 <Button 
                   variant="outline" 
                   size="icon" 
                   disabled={downloadingId === day.id}
                   onClick={() => handlePrintDay(day.id, day.date)}
                   className="rounded-full border-slate-200 dark:border-slate-700 hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-600 dark:hover:text-green-400"
-                  title="Stampa Report Giornata"
                 >
                   {downloadingId === day.id ? <Loader2 size={16} className="animate-spin" /> : <Printer size={16} />}
                 </Button>
@@ -141,7 +138,6 @@ export default function HistoryPage() {
                 {day.sessions.map((session) => (
                   <Link href={`/history/${session.id}`} key={session.id} className="block group pl-4 relative">
                      <div className="absolute -left-[21px] top-1/2 -translate-y-1/2 h-3 w-3 rounded-full bg-slate-200 dark:bg-slate-700 group-hover:bg-green-500 transition-colors border-2 border-slate-50 dark:border-slate-950" />
-                    
                     <Card className="hover:border-green-500 dark:hover:border-green-500 transition-all cursor-pointer border-slate-200 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
                       <CardContent className="p-3 flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -164,11 +160,21 @@ export default function HistoryPage() {
                   </Link>
                 ))}
               </div>
-
             </div>
           ))}
         </div>
       )}
+    </>
+  )
+}
+
+// 2. Componente Principale con Suspense
+export default function HistoryPage() {
+  return (
+    <PageLayout title="Storico Giornate">
+      <Suspense fallback={<div className="pt-20 flex justify-center"><Loader2 className="animate-spin text-green-600" /></div>}>
+        <HistoryContent />
+      </Suspense>
     </PageLayout>
   )
 }
