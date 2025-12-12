@@ -52,7 +52,7 @@ Built with a modern, scalable, and performance-focused stack:
     Create a `.env.local` file in the root directory and add your Supabase credentials:
     ```env
     NEXT_PUBLIC_SUPABASE_URL=your_project_url
-    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+    NNEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_key
     ```
 
 4.  **Database Setup**

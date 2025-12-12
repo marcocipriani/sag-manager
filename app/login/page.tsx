@@ -4,12 +4,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Gauge, AlertCircle } from "lucide-react";
+import { Suspense } from "react";
 
-export default async function LoginPage(props: {
+// 1. Creiamo un componente isolato che legge i parametri URL
+async function LoginMessage({ searchParams }: { searchParams: Promise<{ message: string }> }) {
+  // L'await viene fatto QUI, non bloccando il resto della pagina
+  const { message } = await searchParams;
+
+  if (!message) return null;
+
+  return (
+    <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 p-3 rounded-lg animate-in fade-in slide-in-from-top-1">
+      <AlertCircle size={16} />
+      {message}
+    </div>
+  );
+}
+
+// 2. La Pagina Principale (rimane statica e veloce)
+export default function LoginPage(props: {
   searchParams: Promise<{ message: string }>;
 }) {
-  const searchParams = await props.searchParams;
-
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-950 transition-colors">
       
@@ -60,13 +75,10 @@ export default async function LoginPage(props: {
               />
             </div>
 
-            {/* Messaggio Errore */}
-            {searchParams?.message && (
-              <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 p-3 rounded-lg animate-in fade-in slide-in-from-top-1">
-                <AlertCircle size={16} />
-                {searchParams.message}
-              </div>
-            )}
+            {/* 3. Avvolgiamo il componente del messaggio in Suspense */}
+            <Suspense fallback={<div className="h-10" />}>
+              <LoginMessage searchParams={props.searchParams} />
+            </Suspense>
 
             <div className="pt-2 flex flex-col gap-2">
               <Button formAction={login} className="w-full bg-slate-900 hover:bg-slate-800 text-white dark:bg-green-600 dark:hover:bg-green-700">

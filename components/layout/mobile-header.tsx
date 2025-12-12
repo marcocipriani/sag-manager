@@ -2,10 +2,12 @@
 "use client"
 
 import { useRouter, usePathname } from "next/navigation"
+import Link from "next/link"
+import Image from "next/image" // Importiamo il componente Image
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, Gauge } from "lucide-react"
+import { ChevronLeft } from "lucide-react"
 import { ReactNode } from "react"
-import { ModeToggle } from "@/components/mode-toggle" // Importiamo il toggle qui
+import { ModeToggle } from "@/components/mode-toggle"
 
 interface MobileHeaderProps {
   title?: string
@@ -29,8 +31,8 @@ export function MobileHeader({
   return (
     <header className="bg-white dark:bg-slate-950 border-b dark:border-slate-800 px-4 py-3 flex justify-between items-center sticky top-0 z-50 shadow-sm h-16 transition-colors duration-300">
       
-      {/* LATO SINISTRO: Tasto Indietro o Logo */}
-      <div className="flex items-center gap-3 flex-1">
+      {/* LATO SINISTRO: Tasto Indietro o Logo Ufficiale */}
+      <div className="flex items-center gap-3 flex-1 overflow-hidden">
         {shouldShowBack ? (
           <Button 
             variant="ghost" 
@@ -41,9 +43,16 @@ export function MobileHeader({
             <ChevronLeft size={24} />
           </Button>
         ) : (
-          <div className="bg-slate-900 dark:bg-green-900/20 text-white dark:text-green-400 p-1.5 rounded-lg shrink-0">
-            <Gauge size={20} />
-          </div>
+          // LOGO UFFICIALE (Cliccabile -> Home)
+          <Link href="/" className="shrink-0 hover:opacity-80 transition-opacity">
+            <Image 
+              src="/icon.svg" 
+              alt="SagManager Logo" 
+              width={32} 
+              height={32} 
+              className="rounded-lg shadow-sm" // Arrotondiamo leggermente per coerenza
+            />
+          </Link>
         )}
         
         <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight truncate">
@@ -51,12 +60,10 @@ export function MobileHeader({
         </h1>
       </div>
 
-      {/* LATO DESTRO: Theme Toggle + Azioni Custom (es. Salva o Avatar) */}
+      {/* LATO DESTRO: Theme Toggle + Azioni Custom */}
       <div className="flex items-center gap-2 shrink-0">
-        {/* Il Theme Toggle è sempre presente ora */}
         <ModeToggle />
         
-        {/* Spazio per bottoni extra (Salva, User, ecc) */}
         {rightAction && (
           <div className="pl-1 border-l border-slate-200 dark:border-slate-800 ml-1">
             {rightAction}

@@ -3,9 +3,8 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-// IMPORTA IL TUO CLIENT SUPABASE ESISTENTE
-// Controlla che il percorso sia giusto per il tuo progetto (es: @/utils/supabase/client)
 import { createClient } from "@/lib/supabase/client" 
+import { toast } from "sonner" 
 
 import { PageLayout } from "@/components/layout/page-layout"
 import { Stepper } from "@/components/ui/stepper"
@@ -18,7 +17,7 @@ import {
   Save, ClipboardList, Disc, ArrowDownToLine, ArrowUpFromLine, Ruler, Loader2 
 } from "lucide-react"
 
-// --- TYPES (Struttura Dati) ---
+// --- TYPES ---
 type SetupData = {
   sessionName: string;
   bikeModel: string;
@@ -81,33 +80,26 @@ const DEFAULT_DATA: SetupData = {
 
 export default function NewSessionPage() {
   const router = useRouter()
-  // Inizializziamo il client Supabase usando la tua funzione
   const supabase = createClient()
   
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [bikeId, setBikeId] = useState<string | null>(null)
   
-  // Dati attuali e precedenti
+  // Dati attuali (modificabili)
   const [formData, setFormData] = useState<SetupData>(DEFAULT_DATA)
+  // Dati sessione precedente (SOLO LETTURA per confronto "era X")
   const [previousSession, setPreviousSession] = useState<SetupData | undefined>(undefined)
 
   // --- 1. CARICAMENTO DATI ---
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // A. Verifica Utente
         const { data: { user } } = await supabase.auth.getUser()
-        if (!user) {
-           console.log("Utente non loggato - reindirizzo...")
-           // Opzionale: router.push('/login')
-           // Per ora continuiamo per test (ma i dati non verranno salvati senza user)
-        }
-
         const userId = user?.id
 
-        // B. Trova Moto (Logica semplificata: prende la prima moto o ne crea una)
         if (userId) {
+          // 1. Cerchiamo la moto dell'utente
           let { data: bike } = await supabase
             .from('bikes')
             .select('*')
@@ -115,10 +107,10 @@ export default function NewSessionPage() {
             .limit(1)
             .maybeSingle()
 
-          // Se l'utente non ha moto, ne creiamo una al volo
+          // Se non esiste, ne creiamo una di default per non bloccare l'app
           if (!bike) {
              const { data: newBike } = await supabase.from('bikes').insert({
-               user_id: userId, name: 'La mia Yamaha', brand: 'Yamaha', model: 'R1', year: 2019
+               user_id: userId, name: 'La mia Moto', brand: 'Yamaha', model: 'R1', year: 2019
              }).select().single()
              bike = newBike
           }
@@ -126,23 +118,21 @@ export default function NewSessionPage() {
           if (bike) {
             setBikeId(bike.id)
             
-            // C. Trova l'ULTIMA sessione per ereditare i dati
+            // 2. Cerchiamo l'ultima sessione salvata per questa moto
             const { data: lastSessionData } = await supabase
               .from('sessions')
-              .select(`
-                *,
-                track_days!inner ( bike_id, circuit_name )
-              `)
+              .select(`*, track_days!inner ( bike_id, circuit_name )`)
               .eq('track_days.bike_id', bike.id)
               .order('created_at', { ascending: false })
               .limit(1)
               .maybeSingle()
 
             if (lastSessionData) {
+              // Mappiamo i dati dal DB allo stato locale
               const mappedData: SetupData = {
-                sessionName: "Nuova Sessione",
+                sessionName: "Nuova Sessione", // Resettiamo il nome per la nuova
                 bikeModel: `${bike.brand} ${bike.model}`,
-                riderWeight: 75,
+                riderWeight: 75, // Valore default se non presente in DB
                 circuit: lastSessionData.track_days.circuit_name,
                 tiresModel: lastSessionData.tires_model,
                 tirePressF: lastSessionData.tire_pressure_f,
@@ -168,10 +158,11 @@ export default function NewSessionPage() {
                 rake: lastSessionData.rake,
                 trail: lastSessionData.trail
               }
-              setPreviousSession(mappedData)
-              setFormData(mappedData)
+              
+              setPreviousSession(mappedData) // Salviamo per i confronti "era X"
+              setFormData(mappedData)        // Pre-popoliamo i campi
             } else {
-               // Nessuna sessione precedente: imposta solo il nome moto
+               // Nessuna sessione precedente: usiamo default + nome moto
                setFormData(prev => ({...prev, bikeModel: `${bike.brand} ${bike.model}`}))
             }
           }
@@ -183,7 +174,7 @@ export default function NewSessionPage() {
       }
     }
     fetchData()
-  }, []) // Empty dependency array = esegui solo al mount
+  }, [])
 
   const updateField = (field: keyof SetupData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -192,15 +183,17 @@ export default function NewSessionPage() {
   // --- 2. SALVATAGGIO ---
   const handleSave = async () => {
     if (!bikeId) {
-      alert("Nessuna moto trovata. Assicurati di aver effettuato l'accesso.")
+      toast.error("Nessuna moto trovata", {
+        description: "Assicurati di essere loggato e di avere una moto.",
+      })
       return
     }
     setSaving(true)
 
     try {
-      // A. Gestione Track Day (Cerca o Crea Giornata per Oggi)
       const today = new Date().toISOString().split('T')[0]
       
+      // A. Gestione Track Day (Crea se non esiste oggi per questo circuito)
       let { data: trackDay } = await supabase
         .from('track_days')
         .select('id')
@@ -225,16 +218,27 @@ export default function NewSessionPage() {
         trackDay = newTrackDay
       }
 
-      // B. Inserimento Sessione
+      // B. Calcolo Numero Sessione
+      const { count } = await supabase
+        .from('sessions')
+        .select('*', { count: 'exact', head: true })
+        .eq('track_day_id', trackDay.id)
+      
+      const nextSessionNumber = (count || 0) + 1
+      const finalName = formData.sessionName === "Nuova Sessione" 
+        ? `Sessione ${nextSessionNumber}` 
+        : formData.sessionName
+
+      // C. Inserimento Sessione
       const sessionPayload = {
         track_day_id: trackDay.id,
-        name: formData.sessionName,
-        session_number: 1, // TODO: Calcolare progressivo
+        name: finalName,
+        session_number: nextSessionNumber,
         
+        // Mappatura campi Form -> DB
         tires_model: formData.tiresModel,
         tire_pressure_f: formData.tirePressF,
         tire_pressure_r: formData.tirePressR,
-
         fork_model: formData.forkModel,
         fork_spring: formData.forkSpring,
         fork_preload: formData.forkPreload,
@@ -244,7 +248,6 @@ export default function NewSessionPage() {
         fork_height: formData.forkHeight,
         fork_sag_static: formData.forkSagStatic,
         fork_sag_dynamic: formData.forkSagDynamic,
-
         shock_model: formData.shockModel,
         shock_spring: formData.shockSpring,
         shock_preload: formData.shockPreload,
@@ -253,26 +256,37 @@ export default function NewSessionPage() {
         shock_length: formData.shockLength,
         shock_sag_static: formData.shockSagStatic,
         shock_sag_dynamic: formData.shockSagDynamic,
-
         wheelbase: formData.wheelbase,
         rake: formData.rake,
-        trail: formData.trail
+        trail: formData.trail,
+        
+        notes: "Setup salvato da SagManager"
       }
 
       const { error } = await supabase.from('sessions').insert(sessionPayload)
       if (error) throw error
 
-      console.log("Salvataggio completato!")
-      router.push('/') // Torna alla home
+      toast.success("Setup Salvato! 🏁", {
+        description: `${finalName} registrata con successo.`,
+      })
+
+      // Redirect
+      setTimeout(() => {
+        router.push('/')
+        router.refresh()
+      }, 1000)
       
     } catch (error) {
       console.error("Errore salvataggio:", error)
-      alert("Errore durante il salvataggio")
+      toast.error("Errore di salvataggio", {
+        description: "Controlla la console o riprova.",
+      })
     } finally {
       setSaving(false)
     }
   }
 
+  // Pulsante Header
   const saveButton = (
     <Button 
       size="sm" 
@@ -285,7 +299,6 @@ export default function NewSessionPage() {
     </Button>
   )
 
-  // Loading Screen
   if (loading) {
     return (
       <PageLayout title="Nuova Sessione">
@@ -300,7 +313,7 @@ export default function NewSessionPage() {
   return (
     <PageLayout title="Nuova Sessione" action={saveButton}>
       
-      {/* 1. INFO */}
+      {/* 1. INFO HEADER */}
       <Card className="mb-4 dark:bg-slate-900 dark:border-slate-800">
         <CardContent className="pt-6">
           <Label className="text-slate-500 dark:text-slate-400">Nome Sessione</Label>
@@ -312,34 +325,39 @@ export default function NewSessionPage() {
         </CardContent>
       </Card>
 
-      {/* 2. TABS */}
+      {/* 2. TAB DI NAVIGAZIONE (Griglia fissa 5 colonne) */}
       <Tabs defaultValue="fork" className="w-full">
         
         <TabsList className="grid w-full grid-cols-5 h-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1 rounded-xl shadow-sm mb-6">
+           
            <TabsTrigger value="general" className="flex flex-col items-center justify-center gap-1 h-full data-[state=active]:bg-slate-900 dark:data-[state=active]:bg-green-600 data-[state=active]:text-white rounded-lg transition-all">
              <ClipboardList size={20} strokeWidth={2} />
-             <span className="text-[10px] font-medium">Gen</span>
+             <span className="text-[10px] font-medium tracking-tight">Generale</span>
            </TabsTrigger>
+
            <TabsTrigger value="tires" className="flex flex-col items-center justify-center gap-1 h-full data-[state=active]:bg-slate-900 dark:data-[state=active]:bg-green-600 data-[state=active]:text-white rounded-lg transition-all">
              <Disc size={20} strokeWidth={2} />
-             <span className="text-[10px] font-medium">Gomme</span>
+             <span className="text-[10px] font-medium tracking-tight">Gomme</span>
            </TabsTrigger>
+
            <TabsTrigger value="fork" className="flex flex-col items-center justify-center gap-1 h-full data-[state=active]:bg-slate-900 dark:data-[state=active]:bg-green-600 data-[state=active]:text-white rounded-lg transition-all">
              <ArrowDownToLine size={20} strokeWidth={2} />
-             <span className="text-[10px] font-medium">Force</span>
+             <span className="text-[10px] font-medium tracking-tight">Forcella</span>
            </TabsTrigger>
+
            <TabsTrigger value="shock" className="flex flex-col items-center justify-center gap-1 h-full data-[state=active]:bg-slate-900 dark:data-[state=active]:bg-green-600 data-[state=active]:text-white rounded-lg transition-all">
              <ArrowUpFromLine size={20} strokeWidth={2} />
-             <span className="text-[10px] font-medium">Mono</span>
+             <span className="text-[10px] font-medium tracking-tight">Mono</span>
            </TabsTrigger>
+
            <TabsTrigger value="geo" className="flex flex-col items-center justify-center gap-1 h-full data-[state=active]:bg-slate-900 dark:data-[state=active]:bg-green-600 data-[state=active]:text-white rounded-lg transition-all">
              <Ruler size={20} strokeWidth={2} />
-             <span className="text-[10px] font-medium">Geo</span>
+             <span className="text-[10px] font-medium tracking-tight">Geometria</span>
            </TabsTrigger>
+
         </TabsList>
 
-        {/* CONTENUTO TABS (Incolla i TabContent delle risposte precedenti, la logica è identica) */}
-        {/* ... TAB GENERAL ... */}
+        {/* --- TAB CONTENT: GENERALE --- */}
         <TabsContent value="general" className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
           <Card className="dark:bg-slate-900 dark:border-slate-800">
             <CardHeader><CardTitle className="text-lg dark:text-slate-100">Dati Generali</CardTitle></CardHeader>
@@ -369,7 +387,7 @@ export default function NewSessionPage() {
           </Card>
         </TabsContent>
 
-        {/* ... TAB TIRES ... */}
+        {/* --- TAB CONTENT: GOMME --- */}
         <TabsContent value="tires" className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
            <Card className="dark:bg-slate-900 dark:border-slate-800">
             <CardHeader><CardTitle className="text-lg dark:text-slate-100">Pneumatici</CardTitle></CardHeader>
@@ -386,16 +404,18 @@ export default function NewSessionPage() {
           </Card>
         </TabsContent>
 
-        {/* ... TAB FORK ... */}
+        {/* --- TAB CONTENT: FORCELLA --- */}
         <TabsContent value="fork" className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
           <Card className="dark:bg-slate-900 dark:border-slate-800">
             <CardHeader><CardTitle className="text-lg dark:text-slate-100">Forcella (Anteriore)</CardTitle></CardHeader>
             <CardContent className="space-y-1">
+              {/* Idraulica */}
               <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-950/50 rounded-xl border dark:border-slate-800">
                 <h3 className="font-semibold text-slate-500 mb-4 text-xs uppercase tracking-wider">Idraulica</h3>
                 <Stepper label="Compressione" value={formData.forkComp} previousValue={previousSession?.forkComp} unit="click" onChange={(v) => updateField('forkComp', v)} />
                 <Stepper label="Rebound (Estensione)" value={formData.forkReb} previousValue={previousSession?.forkReb} unit="click" onChange={(v) => updateField('forkReb', v)} />
               </div>
+              {/* Meccanica */}
               <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-950/50 rounded-xl border dark:border-slate-800">
                 <h3 className="font-semibold text-slate-500 mb-4 text-xs uppercase tracking-wider">Meccanica</h3>
                 <Stepper label="Precarico Molla" value={formData.forkPreload} previousValue={previousSession?.forkPreload} unit="giri" onChange={(v) => updateField('forkPreload', v)} />
@@ -403,6 +423,7 @@ export default function NewSessionPage() {
                 <Stepper label="Livello Olio" value={formData.forkOilLevel} previousValue={previousSession?.forkOilLevel} step={5} unit="mm" onChange={(v) => updateField('forkOilLevel', v)} />
                 <Stepper label="Altezza (Sfilamento)" value={formData.forkHeight} previousValue={previousSession?.forkHeight} unit="tacche" onChange={(v) => updateField('forkHeight', v)} />
               </div>
+              {/* Sag */}
               <div className="p-4 bg-slate-50 dark:bg-slate-950/50 rounded-xl border dark:border-slate-800">
                 <h3 className="font-semibold text-slate-500 mb-4 text-xs uppercase tracking-wider">Misurazioni Sag</h3>
                 <Stepper label="Sag Statico" value={formData.forkSagStatic} previousValue={previousSession?.forkSagStatic} unit="mm" onChange={(v) => updateField('forkSagStatic', v)} />
@@ -412,22 +433,25 @@ export default function NewSessionPage() {
           </Card>
         </TabsContent>
 
-        {/* ... TAB SHOCK ... */}
+        {/* --- TAB CONTENT: MONO --- */}
         <TabsContent value="shock" className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
           <Card className="dark:bg-slate-900 dark:border-slate-800">
             <CardHeader><CardTitle className="text-lg dark:text-slate-100">Mono (Posteriore)</CardTitle></CardHeader>
             <CardContent className="space-y-1">
+               {/* Idraulica */}
                <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-950/50 rounded-xl border dark:border-slate-800">
                 <h3 className="font-semibold text-slate-500 mb-4 text-xs uppercase tracking-wider">Idraulica</h3>
                 <Stepper label="Compressione" value={formData.shockComp} previousValue={previousSession?.shockComp} unit="click" onChange={(v) => updateField('shockComp', v)} />
                 <Stepper label="Rebound (Estensione)" value={formData.shockReb} previousValue={previousSession?.shockReb} unit="click" onChange={(v) => updateField('shockReb', v)} />
               </div>
+              {/* Meccanica */}
               <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-950/50 rounded-xl border dark:border-slate-800">
                 <h3 className="font-semibold text-slate-500 mb-4 text-xs uppercase tracking-wider">Meccanica</h3>
                 <Stepper label="Precarico Molla" value={formData.shockPreload} previousValue={previousSession?.shockPreload} unit="mm" onChange={(v) => updateField('shockPreload', v)} />
                 <Stepper label="Molla (K)" value={formData.shockSpring} previousValue={previousSession?.shockSpring} step={5} unit="N/mm" onChange={(v) => updateField('shockSpring', v)} />
                 <Stepper label="Interasse (Lunghezza)" value={formData.shockLength} previousValue={previousSession?.shockLength} step={0.5} unit="mm" onChange={(v) => updateField('shockLength', v)} />
               </div>
+               {/* Sag */}
                <div className="p-4 bg-slate-50 dark:bg-slate-950/50 rounded-xl border dark:border-slate-800">
                 <h3 className="font-semibold text-slate-500 mb-4 text-xs uppercase tracking-wider">Misurazioni Sag</h3>
                 <Stepper label="Sag Statico" value={formData.shockSagStatic} previousValue={previousSession?.shockSagStatic} unit="mm" onChange={(v) => updateField('shockSagStatic', v)} />
@@ -437,7 +461,7 @@ export default function NewSessionPage() {
           </Card>
         </TabsContent>
 
-        {/* ... TAB GEO ... */}
+        {/* --- TAB CONTENT: GEOMETRIA --- */}
         <TabsContent value="geo" className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
           <Card className="dark:bg-slate-900 dark:border-slate-800">
             <CardHeader><CardTitle className="text-lg dark:text-slate-100">Geometria Telaio</CardTitle></CardHeader>
