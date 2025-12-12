@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, use } from "react"
+import { useEffect, useState, use, Suspense } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { addSessionToPDF } from "@/lib/pdf-utils"
 import { PageLayout } from "@/components/layout/page-layout"
@@ -29,10 +29,9 @@ function ValueBox({ label, value, unit }: { label: string, value: any, unit?: st
   )
 }
 
-export default function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
+// 1. Componente Interno con la logica (Sospeso)
+function SessionContent({ id }: { id: string }) {
   const router = useRouter()
-  const { id } = use(params)
-  
   const supabase = createClient()
   const [session, setSession] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -60,16 +59,11 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
     if (!session) return;
     const doc = new jsPDF();
     
-    // Generiamo il contenuto
     addSessionToPDF(doc, session);
     
-    // --- NUOVA LOGICA NOME FILE ---
     const dateObj = new Date(session.created_at);
-    // Data: YYYY-MM-DD
     const dateStr = dateObj.toISOString().split('T')[0]; 
-    // Ora: HHmm (es. 1030)
     const timeStr = dateObj.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }).replace(':', '');
-    // Nome pulito (niente spazi)
     const safeName = session.name.replace(/\s+/g, '_');
 
     const fileName = `SagManager-${dateStr}-${timeStr}-${safeName}.pdf`;
@@ -87,7 +81,14 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
     }
   }
 
-  if (loading) return <PageLayout title="Caricamento..."><Loader2 className="animate-spin" /></PageLayout>
+  if (loading) {
+    return (
+      <div className="flex justify-center pt-20">
+        <Loader2 className="animate-spin text-green-600" />
+      </div>
+    )
+  }
+
   if (!session) return null
 
   const headerActions = (
@@ -205,5 +206,25 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
 
       </div>
     </PageLayout>
+  )
+}
+
+// 2. Componente Wrapper che gestisce il Parametro Asincrono
+function SessionWrapper({ params }: { params: Promise<{ id: string }> }) {
+  // Qui possiamo usare "use" in sicurezza perché siamo sotto Suspense
+  const { id } = use(params)
+  return <SessionContent id={id} />
+}
+
+// 3. Export Default (Punto di ingresso) con Suspense Boundary
+export default function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  return (
+    <Suspense fallback={
+      <PageLayout title="Caricamento...">
+        <div className="flex justify-center pt-20"><Loader2 className="animate-spin text-slate-400" /></div>
+      </PageLayout>
+    }>
+      <SessionWrapper params={params} />
+    </Suspense>
   )
 }
