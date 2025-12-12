@@ -1,4 +1,3 @@
-// src/app/tracks/page.tsx
 import { PageLayout } from "@/components/layout/page-layout" // Nuovo layout
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MapPin } from "lucide-react"

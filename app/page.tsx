@@ -1,4 +1,3 @@
-// src/app/page.tsx
 import Link from "next/link"
 import { PageLayout } from "@/components/layout/page-layout"
 import { Button } from "@/components/ui/button"

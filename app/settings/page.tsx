@@ -1,4 +1,3 @@
-// src/app/settings/page.tsx
 "use client"
 
 import { PageLayout } from "@/components/layout/page-layout"

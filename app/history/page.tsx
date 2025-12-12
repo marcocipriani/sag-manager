@@ -1,4 +1,3 @@
-// src/app/history/page.tsx
 import Link from "next/link"
 import { PageLayout } from "@/components/layout/page-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
