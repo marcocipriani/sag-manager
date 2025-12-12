@@ -1,5 +1,5 @@
 import { Suspense } from "react"
-import SessionDetail from "./session-detail" // Il componente client creato prima
+import SessionDetail from "./session-detail"
 import { Loader2 } from "lucide-react"
 
 // 1. Componente server che "risolve" la promessa dei parametri
