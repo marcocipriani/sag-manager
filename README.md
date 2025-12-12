@@ -2,6 +2,8 @@
 
 **SagManager** is a Progressive Web App (PWA) designed for motorcycle track day enthusiasts. It replaces the traditional paper "setup sheets" with a mobile-first interface optimized for quick data entry in the pit box.
 
+🔗 [Project Demo](https://sag-manager.vercel.app/)
+
 ![Project Status](https://img.shields.io/badge/Status-In%20Development-orange)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
