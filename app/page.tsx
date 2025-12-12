@@ -6,17 +6,14 @@ import { BikeWidget } from "@/components/home/bike-widget"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { 
-  Plus, History, ChevronRight, Map, User, Calendar, MapPin, Loader2 
+  Plus, History, ChevronRight, Map, User, Calendar, MapPin, Loader2, Timer 
 } from "lucide-react"
 
-// 1. Componente Asincrono che carica i Dati (Isolato)
 async function DashboardContent() {
   const supabase = await createClient()
   
-  // A. Recupera Utente
   const { data: { user } } = await supabase.auth.getUser()
   
-  // B. Recupera le Moto
   let bikes = null
   if (user) {
     const { data } = await supabase
@@ -28,7 +25,6 @@ async function DashboardContent() {
     bikes = data
   }
 
-  // C. Recupera le Ultime 5 Sessioni
   let recentSessions = []
   if (user) {
     const { data } = await supabase
@@ -104,16 +100,29 @@ async function DashboardContent() {
                         <p className="font-semibold text-sm text-slate-900 dark:text-slate-100 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">
                           {session.name}
                         </p>
+                        
+                        {/* Riga Dettagli: Luogo • Data • Ora */}
                         <div className="flex items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
                           <span className="flex items-center gap-1">
                             <MapPin size={10} /> {session.track_days?.circuit_name}
                           </span>
+                          
                           <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                          
                           <span className="flex items-center gap-1">
                             <Calendar size={10} /> 
                             {new Date(session.created_at).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })}
                           </span>
+
+                          {/* 2. NUOVA SEZIONE ORARIO */}
+                          <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                          
+                          <span className="flex items-center gap-1">
+                            <Timer size={10} /> 
+                            {new Date(session.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
                         </div>
+
                       </div>
                     </div>
                     
@@ -147,10 +156,7 @@ async function DashboardContent() {
   )
 }
 
-// 2. Pagina Principale (Guscio Esterno)
 export default function Home() {
-  
-  // Header statico (non richiede dati async)
   const headerAction = (
     <Link href="/settings">
       <Button variant="ghost" size="icon" className="text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
@@ -161,10 +167,6 @@ export default function Home() {
 
   return (
     <PageLayout title="Dashboard" isHomePage rightAction={headerAction}>
-      {/* Suspense Boundary:
-         Next.js mostrerà il fallback finché DashboardContent non ha finito di caricare
-         i cookie e i dati da Supabase.
-      */}
       <Suspense fallback={
         <div className="flex flex-col items-center justify-center pt-32 text-slate-400">
           <Loader2 className="h-10 w-10 animate-spin text-green-600 mb-2" />

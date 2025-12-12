@@ -17,6 +17,8 @@ import {
   Save, ClipboardList, Disc, ArrowDownToLine, ArrowUpFromLine, Ruler, Loader2 
 } from "lucide-react"
 
+import { DEFAULT_CONFIG, AppConfig } from "@/lib/preferences"
+
 // --- TYPES ---
 type SetupData = {
   sessionName: string;
@@ -86,6 +88,9 @@ export default function NewSessionPage() {
   const [saving, setSaving] = useState(false)
   const [bikeId, setBikeId] = useState<string | null>(null)
   
+  // Configurazione dinamica (Min/Max/Step/Unit)
+  const [config, setConfig] = useState<AppConfig>(DEFAULT_CONFIG)
+  
   // Dati attuali (modificabili)
   const [formData, setFormData] = useState<SetupData>(DEFAULT_DATA)
   // Dati sessione precedente (SOLO LETTURA per confronto "era X")
@@ -99,7 +104,19 @@ export default function NewSessionPage() {
         const userId = user?.id
 
         if (userId) {
-          // 1. Cerchiamo la moto dell'utente
+          // A. Recupera Configurazione Utente
+          const { data: prefData } = await supabase
+            .from('user_preferences')
+            .select('config')
+            .eq('user_id', userId)
+            .single()
+
+          if (prefData?.config) {
+            // Uniamo la config salvata con quella di default per sicurezza
+            setConfig({ ...DEFAULT_CONFIG, ...prefData.config })
+          }
+
+          // B. Cerchiamo la moto dell'utente
           let { data: bike } = await supabase
             .from('bikes')
             .select('*')
@@ -118,7 +135,7 @@ export default function NewSessionPage() {
           if (bike) {
             setBikeId(bike.id)
             
-            // 2. Cerchiamo l'ultima sessione salvata per questa moto
+            // C. Cerchiamo l'ultima sessione salvata per questa moto
             const { data: lastSessionData } = await supabase
               .from('sessions')
               .select(`*, track_days!inner ( bike_id, circuit_name )`)
@@ -221,7 +238,6 @@ export default function NewSessionPage() {
       if (!trackDay) {
         throw new Error("Impossibile creare o recuperare la giornata (Track Day null).");
       }
-      // ----------------------
 
       // B. Calcolo Numero Sessione
       const { count } = await supabase
@@ -291,17 +307,15 @@ export default function NewSessionPage() {
     }
   }
 
-  // Pulsante Header (ottimizzato per stare in alto)
+  // Pulsante Header
   const saveButton = (
     <Button 
       size="sm" 
       onClick={handleSave} 
       disabled={saving || loading}
-      // Rimuoviamo l'ombra eccessiva per l'header, manteniamo il colore verde
       className="bg-green-600 hover:bg-green-700 text-white gap-2 transition-colors h-9 px-3"
     >
       {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-      {/* Nascondiamo il testo su schermi piccolissimi, mostriamo su mobile standard */}
       <span className={saving ? "hidden" : "hidden xs:inline"}>
         {saving ? "" : "Salva"}
       </span>
@@ -322,8 +336,8 @@ export default function NewSessionPage() {
   return (
     <PageLayout 
       title="Nuova Sessione" 
-      rightAction={saveButton} // <--- ECCO LA MODIFICA: Spostato da 'action' a 'rightAction'
-      showBackButton={true}    // Aggiungiamo la freccia indietro per comodità
+      rightAction={saveButton} 
+      showBackButton={true}
     >
       
       {/* 1. INFO HEADER */}
@@ -338,36 +352,30 @@ export default function NewSessionPage() {
         </CardContent>
       </Card>
 
-      {/* 2. TAB DI NAVIGAZIONE (Griglia fissa 5 colonne) */}
+      {/* 2. TAB DI NAVIGAZIONE */}
       <Tabs defaultValue="fork" className="w-full">
         
         <TabsList className="grid w-full grid-cols-5 h-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1 rounded-xl shadow-sm mb-6">
-           
            <TabsTrigger value="general" className="flex flex-col items-center justify-center gap-1 h-full data-[state=active]:bg-slate-900 dark:data-[state=active]:bg-green-600 data-[state=active]:text-white rounded-lg transition-all">
              <ClipboardList size={20} strokeWidth={2} />
              <span className="text-[10px] font-medium tracking-tight">Generale</span>
            </TabsTrigger>
-
            <TabsTrigger value="tires" className="flex flex-col items-center justify-center gap-1 h-full data-[state=active]:bg-slate-900 dark:data-[state=active]:bg-green-600 data-[state=active]:text-white rounded-lg transition-all">
              <Disc size={20} strokeWidth={2} />
              <span className="text-[10px] font-medium tracking-tight">Gomme</span>
            </TabsTrigger>
-
            <TabsTrigger value="fork" className="flex flex-col items-center justify-center gap-1 h-full data-[state=active]:bg-slate-900 dark:data-[state=active]:bg-green-600 data-[state=active]:text-white rounded-lg transition-all">
              <ArrowDownToLine size={20} strokeWidth={2} />
              <span className="text-[10px] font-medium tracking-tight">Forcella</span>
            </TabsTrigger>
-
            <TabsTrigger value="shock" className="flex flex-col items-center justify-center gap-1 h-full data-[state=active]:bg-slate-900 dark:data-[state=active]:bg-green-600 data-[state=active]:text-white rounded-lg transition-all">
              <ArrowUpFromLine size={20} strokeWidth={2} />
              <span className="text-[10px] font-medium tracking-tight">Mono</span>
            </TabsTrigger>
-
            <TabsTrigger value="geo" className="flex flex-col items-center justify-center gap-1 h-full data-[state=active]:bg-slate-900 dark:data-[state=active]:bg-green-600 data-[state=active]:text-white rounded-lg transition-all">
              <Ruler size={20} strokeWidth={2} />
              <span className="text-[10px] font-medium tracking-tight">Geometria</span>
            </TabsTrigger>
-
         </TabsList>
 
         {/* --- TAB CONTENT: GENERALE --- */}
@@ -410,8 +418,20 @@ export default function NewSessionPage() {
                 <Input value={formData.tiresModel} onChange={(e) => updateField('tiresModel', e.target.value)} className="mt-1 dark:bg-slate-950 dark:border-slate-700" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Stepper label="Press. Anteriore" value={formData.tirePressF} previousValue={previousSession?.tirePressF} step={0.1} unit="bar" onChange={(v) => updateField('tirePressF', v)} />
-                <Stepper label="Press. Posteriore" value={formData.tirePressR} previousValue={previousSession?.tirePressR} step={0.1} unit="bar" onChange={(v) => updateField('tirePressR', v)} />
+                <Stepper 
+                  label={config.tirePressF.label} 
+                  value={formData.tirePressF} 
+                  previousValue={previousSession?.tirePressF} 
+                  min={config.tirePressF.min} max={config.tirePressF.max} step={config.tirePressF.step} unit={config.tirePressF.unit}
+                  onChange={(v) => updateField('tirePressF', v)} 
+                />
+                <Stepper 
+                  label={config.tirePressR.label} 
+                  value={formData.tirePressR} 
+                  previousValue={previousSession?.tirePressR} 
+                  min={config.tirePressR.min} max={config.tirePressR.max} step={config.tirePressR.step} unit={config.tirePressR.unit}
+                  onChange={(v) => updateField('tirePressR', v)} 
+                />
               </div>
             </CardContent>
           </Card>
@@ -422,25 +442,54 @@ export default function NewSessionPage() {
           <Card className="dark:bg-slate-900 dark:border-slate-800">
             <CardHeader><CardTitle className="text-lg dark:text-slate-100">Forcella (Anteriore)</CardTitle></CardHeader>
             <CardContent className="space-y-1">
-              {/* Idraulica */}
               <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-950/50 rounded-xl border dark:border-slate-800">
                 <h3 className="font-semibold text-slate-500 mb-4 text-xs uppercase tracking-wider">Idraulica</h3>
-                <Stepper label="Compressione" value={formData.forkComp} previousValue={previousSession?.forkComp} unit="click" onChange={(v) => updateField('forkComp', v)} />
-                <Stepper label="Rebound (Estensione)" value={formData.forkReb} previousValue={previousSession?.forkReb} unit="click" onChange={(v) => updateField('forkReb', v)} />
+                <Stepper 
+                  label={config.forkComp.label} value={formData.forkComp} previousValue={previousSession?.forkComp}
+                  min={config.forkComp.min} max={config.forkComp.max} step={config.forkComp.step} unit={config.forkComp.unit}
+                  onChange={(v) => updateField('forkComp', v)} 
+                />
+                <Stepper 
+                  label={config.forkReb.label} value={formData.forkReb} previousValue={previousSession?.forkReb} 
+                  min={config.forkReb.min} max={config.forkReb.max} step={config.forkReb.step} unit={config.forkReb.unit}
+                  onChange={(v) => updateField('forkReb', v)} 
+                />
               </div>
-              {/* Meccanica */}
               <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-950/50 rounded-xl border dark:border-slate-800">
                 <h3 className="font-semibold text-slate-500 mb-4 text-xs uppercase tracking-wider">Meccanica</h3>
-                <Stepper label="Precarico Molla" value={formData.forkPreload} previousValue={previousSession?.forkPreload} unit="giri" onChange={(v) => updateField('forkPreload', v)} />
-                <Stepper label="Molla (K)" value={formData.forkSpring} previousValue={previousSession?.forkSpring} step={0.5} unit="N/mm" onChange={(v) => updateField('forkSpring', v)} />
-                <Stepper label="Livello Olio" value={formData.forkOilLevel} previousValue={previousSession?.forkOilLevel} step={5} unit="mm" onChange={(v) => updateField('forkOilLevel', v)} />
-                <Stepper label="Altezza (Sfilamento)" value={formData.forkHeight} previousValue={previousSession?.forkHeight} unit="tacche" onChange={(v) => updateField('forkHeight', v)} />
+                <Stepper 
+                  label={config.forkPreload.label} value={formData.forkPreload} previousValue={previousSession?.forkPreload} 
+                  min={config.forkPreload.min} max={config.forkPreload.max} step={config.forkPreload.step} unit={config.forkPreload.unit}
+                  onChange={(v) => updateField('forkPreload', v)} 
+                />
+                <Stepper 
+                  label={config.forkSpring.label} value={formData.forkSpring} previousValue={previousSession?.forkSpring} 
+                  min={config.forkSpring.min} max={config.forkSpring.max} step={config.forkSpring.step} unit={config.forkSpring.unit}
+                  onChange={(v) => updateField('forkSpring', v)} 
+                />
+                <Stepper 
+                  label={config.forkOilLevel.label} value={formData.forkOilLevel} previousValue={previousSession?.forkOilLevel} 
+                  min={config.forkOilLevel.min} max={config.forkOilLevel.max} step={config.forkOilLevel.step} unit={config.forkOilLevel.unit}
+                  onChange={(v) => updateField('forkOilLevel', v)} 
+                />
+                <Stepper 
+                  label={config.forkHeight.label} value={formData.forkHeight} previousValue={previousSession?.forkHeight} 
+                  min={config.forkHeight.min} max={config.forkHeight.max} step={config.forkHeight.step} unit={config.forkHeight.unit}
+                  onChange={(v) => updateField('forkHeight', v)} 
+                />
               </div>
-              {/* Sag */}
               <div className="p-4 bg-slate-50 dark:bg-slate-950/50 rounded-xl border dark:border-slate-800">
                 <h3 className="font-semibold text-slate-500 mb-4 text-xs uppercase tracking-wider">Misurazioni Sag</h3>
-                <Stepper label="Sag Statico" value={formData.forkSagStatic} previousValue={previousSession?.forkSagStatic} unit="mm" onChange={(v) => updateField('forkSagStatic', v)} />
-                <Stepper label="Sag Dinamico" value={formData.forkSagDynamic} previousValue={previousSession?.forkSagDynamic} unit="mm" onChange={(v) => updateField('forkSagDynamic', v)} />
+                <Stepper 
+                  label={config.forkSagStatic.label} value={formData.forkSagStatic} previousValue={previousSession?.forkSagStatic} 
+                  min={config.forkSagStatic.min} max={config.forkSagStatic.max} step={config.forkSagStatic.step} unit={config.forkSagStatic.unit}
+                  onChange={(v) => updateField('forkSagStatic', v)} 
+                />
+                <Stepper 
+                  label={config.forkSagDynamic.label} value={formData.forkSagDynamic} previousValue={previousSession?.forkSagDynamic} 
+                  min={config.forkSagDynamic.min} max={config.forkSagDynamic.max} step={config.forkSagDynamic.step} unit={config.forkSagDynamic.unit}
+                  onChange={(v) => updateField('forkSagDynamic', v)} 
+                />
               </div>
             </CardContent>
           </Card>
@@ -451,24 +500,49 @@ export default function NewSessionPage() {
           <Card className="dark:bg-slate-900 dark:border-slate-800">
             <CardHeader><CardTitle className="text-lg dark:text-slate-100">Mono (Posteriore)</CardTitle></CardHeader>
             <CardContent className="space-y-1">
-               {/* Idraulica */}
                <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-950/50 rounded-xl border dark:border-slate-800">
                 <h3 className="font-semibold text-slate-500 mb-4 text-xs uppercase tracking-wider">Idraulica</h3>
-                <Stepper label="Compressione" value={formData.shockComp} previousValue={previousSession?.shockComp} unit="click" onChange={(v) => updateField('shockComp', v)} />
-                <Stepper label="Rebound (Estensione)" value={formData.shockReb} previousValue={previousSession?.shockReb} unit="click" onChange={(v) => updateField('shockReb', v)} />
+                <Stepper 
+                  label={config.shockComp.label} value={formData.shockComp} previousValue={previousSession?.shockComp} 
+                  min={config.shockComp.min} max={config.shockComp.max} step={config.shockComp.step} unit={config.shockComp.unit}
+                  onChange={(v) => updateField('shockComp', v)} 
+                />
+                <Stepper 
+                  label={config.shockReb.label} value={formData.shockReb} previousValue={previousSession?.shockReb} 
+                  min={config.shockReb.min} max={config.shockReb.max} step={config.shockReb.step} unit={config.shockReb.unit}
+                  onChange={(v) => updateField('shockReb', v)} 
+                />
               </div>
-              {/* Meccanica */}
               <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-950/50 rounded-xl border dark:border-slate-800">
                 <h3 className="font-semibold text-slate-500 mb-4 text-xs uppercase tracking-wider">Meccanica</h3>
-                <Stepper label="Precarico Molla" value={formData.shockPreload} previousValue={previousSession?.shockPreload} unit="mm" onChange={(v) => updateField('shockPreload', v)} />
-                <Stepper label="Molla (K)" value={formData.shockSpring} previousValue={previousSession?.shockSpring} step={5} unit="N/mm" onChange={(v) => updateField('shockSpring', v)} />
-                <Stepper label="Interasse (Lunghezza)" value={formData.shockLength} previousValue={previousSession?.shockLength} step={0.5} unit="mm" onChange={(v) => updateField('shockLength', v)} />
+                <Stepper 
+                  label={config.shockPreload.label} value={formData.shockPreload} previousValue={previousSession?.shockPreload} 
+                  min={config.shockPreload.min} max={config.shockPreload.max} step={config.shockPreload.step} unit={config.shockPreload.unit}
+                  onChange={(v) => updateField('shockPreload', v)} 
+                />
+                <Stepper 
+                  label={config.shockSpring.label} value={formData.shockSpring} previousValue={previousSession?.shockSpring} 
+                  min={config.shockSpring.min} max={config.shockSpring.max} step={config.shockSpring.step} unit={config.shockSpring.unit}
+                  onChange={(v) => updateField('shockSpring', v)} 
+                />
+                <Stepper 
+                  label={config.shockLength.label} value={formData.shockLength} previousValue={previousSession?.shockLength} 
+                  min={config.shockLength.min} max={config.shockLength.max} step={config.shockLength.step} unit={config.shockLength.unit}
+                  onChange={(v) => updateField('shockLength', v)} 
+                />
               </div>
-               {/* Sag */}
                <div className="p-4 bg-slate-50 dark:bg-slate-950/50 rounded-xl border dark:border-slate-800">
                 <h3 className="font-semibold text-slate-500 mb-4 text-xs uppercase tracking-wider">Misurazioni Sag</h3>
-                <Stepper label="Sag Statico" value={formData.shockSagStatic} previousValue={previousSession?.shockSagStatic} unit="mm" onChange={(v) => updateField('shockSagStatic', v)} />
-                <Stepper label="Sag Dinamico" value={formData.shockSagDynamic} previousValue={previousSession?.shockSagDynamic} unit="mm" onChange={(v) => updateField('shockSagDynamic', v)} />
+                <Stepper 
+                  label={config.shockSagStatic.label} value={formData.shockSagStatic} previousValue={previousSession?.shockSagStatic} 
+                  min={config.shockSagStatic.min} max={config.shockSagStatic.max} step={config.shockSagStatic.step} unit={config.shockSagStatic.unit}
+                  onChange={(v) => updateField('shockSagStatic', v)} 
+                />
+                <Stepper 
+                  label={config.shockSagDynamic.label} value={formData.shockSagDynamic} previousValue={previousSession?.shockSagDynamic} 
+                  min={config.shockSagDynamic.min} max={config.shockSagDynamic.max} step={config.shockSagDynamic.step} unit={config.shockSagDynamic.unit}
+                  onChange={(v) => updateField('shockSagDynamic', v)} 
+                />
               </div>
             </CardContent>
           </Card>
@@ -480,17 +554,22 @@ export default function NewSessionPage() {
             <CardHeader><CardTitle className="text-lg dark:text-slate-100">Geometria Telaio</CardTitle></CardHeader>
             <CardContent>
               <Stepper 
-                label="Interasse Totale" 
+                label={config.wheelbase.label} 
                 value={formData.wheelbase} 
                 previousValue={previousSession?.wheelbase} 
-                step={1} 
-                min={1000} // Limite minimo (1 metro)
-                max={2000} // Limite massimo alzato a 2 metri (risolve il problema dei tasti bloccati)
-                unit="mm" 
+                min={config.wheelbase.min} max={config.wheelbase.max} step={config.wheelbase.step} unit={config.wheelbase.unit}
                 onChange={(v) => updateField('wheelbase', v)} 
               />
-              <Stepper label="Inclinazione Cannotto" value={formData.rake} previousValue={previousSession?.rake} step={0.1} unit="deg" onChange={(v) => updateField('rake', v)} />
-              <Stepper label="Avancorsa (Trail)" value={formData.trail} previousValue={previousSession?.trail} step={1} unit="mm" onChange={(v) => updateField('trail', v)} />
+              <Stepper 
+                label={config.rake.label} value={formData.rake} previousValue={previousSession?.rake} 
+                min={config.rake.min} max={config.rake.max} step={config.rake.step} unit={config.rake.unit}
+                onChange={(v) => updateField('rake', v)} 
+              />
+              <Stepper 
+                label={config.trail.label} value={formData.trail} previousValue={previousSession?.trail} 
+                min={config.trail.min} max={config.trail.max} step={config.trail.step} unit={config.trail.unit}
+                onChange={(v) => updateField('trail', v)} 
+              />
             </CardContent>
           </Card>
         </TabsContent>
