@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { 
   Loader2, Trash2, Printer, Calendar, MapPin, Bike,
-  ClipboardList, Disc, ArrowDownToLine, ArrowUpFromLine, Ruler 
+  Disc, ArrowDownToLine, ArrowUpFromLine, Ruler 
 } from "lucide-react"
 import jsPDF from "jspdf"
 
@@ -30,7 +30,6 @@ function ValueBox({ label, value, unit }: { label: string, value: any, unit?: st
   )
 }
 
-// Questo componente riceve l'ID pulito come "prop"
 export default function SessionDetail({ id }: { id: string }) {
   const router = useRouter()
   const supabase = createClient()
@@ -92,19 +91,35 @@ export default function SessionDetail({ id }: { id: string }) {
 
   if (!session) return null
 
+  // Pulsanti Header (Stampa ed Elimina)
   const headerActions = (
     <div className="flex items-center gap-1">
-      <Button variant="ghost" size="icon" onClick={handleExportPDF} className="text-slate-600 hover:text-green-600 dark:text-slate-300">
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        onClick={handleExportPDF} 
+        title="Scarica PDF"
+        className="text-slate-600 hover:text-green-600 dark:text-slate-300 dark:hover:text-green-400"
+      >
         <Printer size={20} />
       </Button>
-      <Button variant="ghost" size="icon" onClick={handleDelete} className="text-slate-600 hover:text-red-600 dark:text-slate-300">
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        onClick={handleDelete} 
+        title="Elimina Sessione"
+        className="text-slate-600 hover:text-red-600 dark:text-slate-300 dark:hover:text-red-400"
+      >
         <Trash2 size={20} />
       </Button>
     </div>
   )
 
   return (
-    <PageLayout title={session.name} action={headerActions}>
+    <PageLayout 
+      title={session.name} 
+      rightAction={headerActions} // <--- MODIFICA QUI: Spostato in alto
+    >
       <div className="space-y-6 pb-10">
 
         {/* Header Info */}

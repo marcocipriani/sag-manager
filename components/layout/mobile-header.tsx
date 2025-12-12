@@ -3,7 +3,7 @@
 
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
-import Image from "next/image" // Importiamo il componente Image
+import Image from "next/image" 
 import { Button } from "@/components/ui/button"
 import { ChevronLeft } from "lucide-react"
 import { ReactNode } from "react"
@@ -50,7 +50,7 @@ export function MobileHeader({
               alt="SagManager Logo" 
               width={32} 
               height={32} 
-              className="rounded-lg shadow-sm" // Arrotondiamo leggermente per coerenza
+              className="rounded-lg shadow-sm" 
             />
           </Link>
         )}

@@ -291,16 +291,20 @@ export default function NewSessionPage() {
     }
   }
 
-  // Pulsante Header
+  // Pulsante Header (ottimizzato per stare in alto)
   const saveButton = (
     <Button 
       size="sm" 
       onClick={handleSave} 
       disabled={saving || loading}
-      className="bg-green-600 hover:bg-green-700 text-white gap-2 shadow-sm transition-colors"
+      // Rimuoviamo l'ombra eccessiva per l'header, manteniamo il colore verde
+      className="bg-green-600 hover:bg-green-700 text-white gap-2 transition-colors h-9 px-3"
     >
       {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-      <span className="hidden sm:inline">{saving ? "Salvataggio..." : "Salva"}</span>
+      {/* Nascondiamo il testo su schermi piccolissimi, mostriamo su mobile standard */}
+      <span className={saving ? "hidden" : "hidden xs:inline"}>
+        {saving ? "" : "Salva"}
+      </span>
     </Button>
   )
 
@@ -316,7 +320,11 @@ export default function NewSessionPage() {
   }
 
   return (
-    <PageLayout title="Nuova Sessione" action={saveButton}>
+    <PageLayout 
+      title="Nuova Sessione" 
+      rightAction={saveButton} // <--- ECCO LA MODIFICA: Spostato da 'action' a 'rightAction'
+      showBackButton={true}    // Aggiungiamo la freccia indietro per comodità
+    >
       
       {/* 1. INFO HEADER */}
       <Card className="mb-4 dark:bg-slate-900 dark:border-slate-800">
@@ -471,7 +479,16 @@ export default function NewSessionPage() {
           <Card className="dark:bg-slate-900 dark:border-slate-800">
             <CardHeader><CardTitle className="text-lg dark:text-slate-100">Geometria Telaio</CardTitle></CardHeader>
             <CardContent>
-              <Stepper label="Interasse Totale" value={formData.wheelbase} previousValue={previousSession?.wheelbase} step={1} unit="mm" onChange={(v) => updateField('wheelbase', v)} />
+              <Stepper 
+                label="Interasse Totale" 
+                value={formData.wheelbase} 
+                previousValue={previousSession?.wheelbase} 
+                step={1} 
+                min={1000} // Limite minimo (1 metro)
+                max={2000} // Limite massimo alzato a 2 metri (risolve il problema dei tasti bloccati)
+                unit="mm" 
+                onChange={(v) => updateField('wheelbase', v)} 
+              />
               <Stepper label="Inclinazione Cannotto" value={formData.rake} previousValue={previousSession?.rake} step={0.1} unit="deg" onChange={(v) => updateField('rake', v)} />
               <Stepper label="Avancorsa (Trail)" value={formData.trail} previousValue={previousSession?.trail} step={1} unit="mm" onChange={(v) => updateField('trail', v)} />
             </CardContent>

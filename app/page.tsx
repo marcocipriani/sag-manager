@@ -1,126 +1,178 @@
 import Link from "next/link"
+import { Suspense } from "react"
+import { createClient } from "@/lib/supabase/server"
 import { PageLayout } from "@/components/layout/page-layout"
+import { BikeWidget } from "@/components/home/bike-widget"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { 
-  PlusCircle, 
-  Bike, 
-  History, 
-  ChevronRight, 
-  MapPin,
-  User
+  Plus, History, ChevronRight, Map, User, Calendar, MapPin, Loader2 
 } from "lucide-react"
 
+// 1. Componente Asincrono che carica i Dati (Isolato)
+async function DashboardContent() {
+  const supabase = await createClient()
+  
+  // A. Recupera Utente
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  // B. Recupera le Moto
+  let bikes = null
+  if (user) {
+    const { data } = await supabase
+      .from('bikes')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('is_active', { ascending: false })
+      .order('created_at', { ascending: false })
+    bikes = data
+  }
+
+  // C. Recupera le Ultime 5 Sessioni
+  let recentSessions = []
+  if (user) {
+    const { data } = await supabase
+      .from('sessions')
+      .select(`
+        id, 
+        name, 
+        created_at, 
+        session_number,
+        track_days!inner ( 
+          circuit_name, 
+          date 
+        )
+      `)
+      .order('created_at', { ascending: false })
+      .limit(5)
+    
+    recentSessions = data || []
+  }
+
+  return (
+    <div className="space-y-6 pb-20">
+      
+      {/* 1. NUOVA SESSIONE */}
+      <section>
+        <Link href="/new-session">
+          <Button className="w-full h-16 text-xl font-bold bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-900/20 gap-3 rounded-2xl transition-all active:scale-95">
+            <Plus size={28} />
+            Nuova Sessione
+          </Button>
+        </Link>
+      </section>
+
+      {/* 2. WIDGET MOTO */}
+      <section>
+        <BikeWidget bikes={bikes} />
+      </section>
+
+      {/* 3. ATTIVITÀ RECENTI */}
+      <section>
+        <div className="flex items-center justify-between mb-3 px-1">
+          <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <History size={18} className="text-green-600" /> Attività Recenti
+          </h3>
+          {recentSessions.length > 0 && (
+            <Link href="/history" className="text-xs text-green-600 font-medium flex items-center hover:underline">
+              Vedi tutto <ChevronRight size={12} />
+            </Link>
+          )}
+        </div>
+        
+        <Card className="border-slate-200 dark:border-slate-800 dark:bg-slate-900 overflow-hidden">
+          <CardContent className="p-0">
+            {recentSessions.length === 0 ? (
+              <div className="p-8 text-center text-slate-500">
+                <p className="text-sm">Non hai ancora registrato sessioni.</p>
+                <p className="text-xs mt-1 opacity-70">Inizia la tua prima misurazione!</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                {recentSessions.map((session: any) => (
+                  <Link 
+                    key={session.id} 
+                    href={`/history/${session.id}`}
+                    className="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 font-bold text-sm border border-slate-200 dark:border-slate-700">
+                        {session.session_number}
+                      </div>
+                      
+                      <div>
+                        <p className="font-semibold text-sm text-slate-900 dark:text-slate-100 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">
+                          {session.name}
+                        </p>
+                        <div className="flex items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          <span className="flex items-center gap-1">
+                            <MapPin size={10} /> {session.track_days?.circuit_name}
+                          </span>
+                          <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                          <span className="flex items-center gap-1">
+                            <Calendar size={10} /> 
+                            {new Date(session.created_at).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <ChevronRight size={16} className="text-slate-300 group-hover:text-green-500 transition-colors" />
+                  </Link>
+                ))}
+                
+                <Link 
+                  href="/history" 
+                  className="block p-3 text-center text-xs font-medium text-slate-500 hover:text-green-600 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                >
+                  Apri Storico Completo
+                </Link>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* 4. CIRCUITI */}
+      <section>
+        <Link href="/tracks">
+          <Button variant="outline" className="w-full h-12 border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 gap-2 rounded-xl">
+            <Map size={18} /> 
+            Gestione Circuiti
+          </Button>
+        </Link>
+      </section>
+
+    </div>
+  )
+}
+
+// 2. Pagina Principale (Guscio Esterno)
 export default function Home() {
   
-  // Action Header: Settings Link
-  const headerActions = (
-    <div className="flex items-center gap-1">
-      <Link href="/settings">
-        <Button variant="ghost" size="icon" className="rounded-full">
-          <div className="h-8 w-8 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-green-500 transition-colors">
-            <User size={18} />
-          </div>
-        </Button>
-      </Link>
-    </div>
+  // Header statico (non richiede dati async)
+  const headerAction = (
+    <Link href="/settings">
+      <Button variant="ghost" size="icon" className="text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+        <User size={22} />
+      </Button>
+    </Link>
   )
 
   return (
-    <PageLayout title="SagManager" isHomePage action={headerActions}>
-      
-      {/* 1. MAIN CTA: NEW SESSION (Top Priority) */}
-      <Link href="/new-session" className="block group">
-        <Card className="bg-slate-900 dark:bg-slate-900 border-slate-800 dark:border-slate-700 text-white shadow-xl hover:shadow-green-900/20 hover:border-green-500/50 transition-all relative overflow-hidden">
-          <div className="absolute -right-10 -top-10 bg-green-500 h-40 w-40 rounded-full opacity-10 blur-3xl group-hover:opacity-20 transition-opacity"></div>
-          
-          <CardContent className="flex items-center justify-between p-6 relative z-10">
-            <div className="space-y-2">
-              <CardTitle className="text-2xl flex items-center gap-3">
-                <PlusCircle className="text-green-400" size={28} /> 
-                <span>Nuova Sessione</span>
-              </CardTitle>
-              <CardDescription className="text-slate-400 font-medium">
-                Registra setup per Yamaha R1
-              </CardDescription>
-            </div>
-            <div className="bg-slate-800 p-2 rounded-full group-hover:bg-green-600 transition-colors">
-                <ChevronRight className="text-white" />
-            </div>
-          </CardContent>
-        </Card>
-      </Link>
-
-      {/* 2. SECONDARY ACTIONS GRID */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* History */}
-        <Link href="/history">
-          <Card className="h-full hover:border-green-500 dark:hover:border-green-500 hover:shadow-md transition-all cursor-pointer bg-white dark:bg-slate-900 dark:border-slate-800">
-            <CardHeader className="p-5 pb-2">
-              <History className="h-7 w-7 text-slate-600 dark:text-slate-400 mb-2 group-hover:text-green-500 transition-colors" />
-              <CardTitle className="text-base text-slate-900 dark:text-slate-100">Storico</CardTitle>
-            </CardHeader>
-            <CardContent className="p-5 pt-0">
-              <CardDescription className="text-xs text-slate-500 dark:text-slate-500">
-                Le tue giornate
-              </CardDescription>
-            </CardContent>
-          </Card>
-        </Link>
-
-        {/* Tracks */}
-        <Link href="/tracks">
-          <Card className="h-full hover:border-green-500 dark:hover:border-green-500 hover:shadow-md transition-all cursor-pointer bg-white dark:bg-slate-900 dark:border-slate-800">
-            <CardHeader className="p-5 pb-2">
-              <MapPin className="h-7 w-7 text-slate-600 dark:text-slate-400 mb-2 group-hover:text-green-500 transition-colors" />
-              <CardTitle className="text-base text-slate-900 dark:text-slate-100">Circuiti</CardTitle>
-            </CardHeader>
-            <CardContent className="p-5 pt-0">
-              <CardDescription className="text-xs text-slate-500 dark:text-slate-500">
-                Note e riferimenti
-              </CardDescription>
-            </CardContent>
-          </Card>
-        </Link>
-      </div>
-
-      {/* 3. GARAGE SECTION */}
-      <div className="space-y-3 pt-2">
-        <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
-          Il tuo Garage
-        </h3>
-        
-        {/* Active Bike Widget */}
-        <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="bg-green-50 dark:bg-green-500/10 p-3 rounded-xl text-green-600 dark:text-green-400">
-              <Bike size={24} />
-            </div>
-            <div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                In uso ora
-              </p>
-              <p className="text-base font-bold text-slate-900 dark:text-white">
-                Yamaha R1 2019
-              </p>
-            </div>
-          </div>
-          <Button variant="ghost" size="sm" className="text-green-600 dark:text-green-400 text-xs font-bold hover:bg-green-50 dark:hover:bg-green-900/20">
-            CAMBIA
-          </Button>
+    <PageLayout title="Dashboard" isHomePage rightAction={headerAction}>
+      {/* Suspense Boundary:
+         Next.js mostrerà il fallback finché DashboardContent non ha finito di caricare
+         i cookie e i dati da Supabase.
+      */}
+      <Suspense fallback={
+        <div className="flex flex-col items-center justify-center pt-32 text-slate-400">
+          <Loader2 className="h-10 w-10 animate-spin text-green-600 mb-2" />
+          <p className="text-sm">Caricamento Garage...</p>
         </div>
-
-        {/* Link to Full Garage */}
-        <Link href="/garage">
-          <Button variant="outline" className="w-full justify-between dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800 h-12">
-            <span className="flex items-center gap-2">
-              <Bike size={16} /> Gestisci tutte le moto
-            </span>
-            <ChevronRight size={16} />
-          </Button>
-        </Link>
-      </div>
-
+      }>
+        <DashboardContent />
+      </Suspense>
     </PageLayout>
   )
 }
