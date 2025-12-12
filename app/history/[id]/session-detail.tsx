@@ -30,7 +30,7 @@ function ValueBox({ label, value, unit }: { label: string, value: any, unit?: st
   )
 }
 
-// Nota: Qui riceviamo direttamente "id" come stringa, niente Promise
+// Questo componente riceve l'ID pulito come "prop"
 export default function SessionDetail({ id }: { id: string }) {
   const router = useRouter()
   const supabase = createClient()

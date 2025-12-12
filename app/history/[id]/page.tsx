@@ -1,8 +1,8 @@
 // src/app/history/[id]/page.tsx
 import SessionDetail from "./session-detail"
 
-// Questa pagina è un Server Component (default in Next.js 13+)
-// Riceve i params come Promise, li risolve e passa l'ID al componente client
+// Server Component: Gestisce i parametri asincroni (obbligatorio in Next 15)
+// e passa il controllo al Client Component
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   return <SessionDetail id={id} />
