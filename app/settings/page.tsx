@@ -1,3 +1,4 @@
+// src/app/settings/page.tsx
 "use client"
 
 import { PageLayout } from "@/components/layout/page-layout"
@@ -14,6 +15,8 @@ import {
   Github 
 } from "lucide-react"
 import { useTheme } from "next-themes"
+// 1. IMPORTIAMO L'AZIONE
+import { signout } from "@/app/login/actions" 
 
 export default function SettingsPage() {
   const { setTheme, theme } = useTheme()
@@ -21,7 +24,7 @@ export default function SettingsPage() {
   return (
     <PageLayout title="Impostazioni">
       
-      {/* SECTION 1: USER PROFILE */}
+      {/* ... (SEZIONI PROFILO E PREFERENZE RIMANGONO IDENTICHE) ... */}
       <Card className="dark:bg-slate-900 dark:border-slate-800">
         <CardHeader className="pb-4">
           <div className="flex items-center gap-4">
@@ -29,28 +32,26 @@ export default function SettingsPage() {
               <User size={32} className="text-slate-500 dark:text-slate-400" />
             </div>
             <div>
-              <CardTitle className="text-xl dark:text-white">Mario Rossi</CardTitle>
+              <CardTitle className="text-xl dark:text-white">Utente</CardTitle>
               <CardDescription className="text-slate-500 dark:text-slate-400">
-                mario.rossi@example.com
+                Profilo Pilota
               </CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent>
+          {/* Pulsante Placeholder (non fa nulla per ora) */}
           <Button variant="outline" className="w-full justify-start gap-2 dark:border-slate-700 dark:text-slate-200">
             <User size={16} /> Modifica Profilo
           </Button>
         </CardContent>
       </Card>
 
-      {/* SECTION 2: APP PREFERENCES */}
       <Card className="dark:bg-slate-900 dark:border-slate-800">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg dark:text-white">Preferenze App</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4">
-          
-          {/* Theme Selector */}
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <div className="font-medium text-slate-900 dark:text-slate-200">Tema</div>
@@ -77,10 +78,7 @@ export default function SettingsPage() {
               </Button>
             </div>
           </div>
-
           <Separator className="dark:bg-slate-800" />
-
-          {/* Unit Preferences (Placeholder) */}
           <div className="flex items-center justify-between">
              <div className="space-y-0.5">
               <div className="font-medium text-slate-900 dark:text-slate-200">Unità di Misura</div>
@@ -88,14 +86,11 @@ export default function SettingsPage() {
                 Pressione gomme (Bar)
               </div>
             </div>
-             <Button variant="ghost" disabled className="text-slate-400">
-                Bar
-             </Button>
+             <Button variant="ghost" disabled className="text-slate-400">Bar</Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* SECTION 3: DATA & EXPORT */}
       <Card className="dark:bg-slate-900 dark:border-slate-800">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg dark:text-white">Dati e Privacy</CardTitle>
@@ -112,8 +107,10 @@ export default function SettingsPage() {
 
       {/* SECTION 4: SYSTEM / LOGOUT */}
       <div className="pt-4 pb-8">
+        {/* 2. COLLEGHIAMO L'AZIONE AL BOTTONE */}
         <Button 
           variant="destructive" 
+          onClick={() => signout()} 
           className="w-full bg-red-600 hover:bg-red-700 text-white gap-2 h-12 text-base shadow-sm"
         >
           <LogOut size={18} /> Logout
