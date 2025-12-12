@@ -67,3 +67,36 @@ export async function deleteBike(bikeId: string) {
   revalidatePath("/garage")
   return { success: true }
 }
+
+// 4. Aggiorna Moto Esistente
+export async function updateBike(bikeId: string, formData: FormData) {
+  const supabase = await createClient()
+  
+  // Verifica utente
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Utente non loggato" }
+
+  const brand = formData.get("brand") as string
+  const model = formData.get("model") as string
+  const year = formData.get("year") as string
+  const name = formData.get("name") as string
+  const weight = formData.get("weight") as string
+
+  const { error } = await supabase
+    .from('bikes')
+    .update({
+      brand,
+      model,
+      year: parseInt(year),
+      name: name || `${brand} ${model}`,
+      weight: parseFloat(weight) || 0,
+    })
+    .eq('id', bikeId)
+    .eq('user_id', user.id) // Sicurezza extra: modifica solo se è sua
+
+  if (error) return { error: error.message }
+  
+  revalidatePath("/garage")
+  revalidatePath("/") // Aggiorna anche la home
+  return { success: true }
+}
