@@ -6,9 +6,10 @@ import { deleteCircuit, toggleFavoriteCircuit } from "./actions"
 import { PageLayout } from "@/components/layout/page-layout"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input" // <--- Import Input
 import { TrackDialog } from "./track-dialog"
 import { 
-  Plus, MapPin, Timer, Settings, MoreVertical, Trash2, Pencil, Ruler, Loader2, Navigation, Star, Flag 
+  Plus, MapPin, Timer, Settings, MoreVertical, Trash2, Pencil, Ruler, Loader2, Navigation, Star, Flag, Search, CloudSun // <--- Import Search, CloudSun
 } from "lucide-react"
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
@@ -21,6 +22,9 @@ export default function TracksPage() {
   const [circuits, setCircuits] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   
+  // Stato per la ricerca
+  const [searchTerm, setSearchTerm] = useState("") // <--- Stato ricerca
+
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [editingCircuit, setEditingCircuit] = useState<any>(null)
 
@@ -30,7 +34,6 @@ export default function TracksPage() {
 
   const fetchCircuits = async () => {
     try {
-      // 1. Recupera l'elenco dei circuiti
       const { data: circuitsData, error: circuitsError } = await supabase
         .from('circuits')
         .select('*')
@@ -39,30 +42,21 @@ export default function TracksPage() {
       
       if (circuitsError) throw circuitsError
 
-      // 2. Recupera tutte le sessioni per contarle
-      // Joiniamo con track_days per avere il nome del circuito
       const { data: sessionsData, error: sessionsError } = await supabase
         .from('sessions')
-        .select(`
-          id,
-          track_days!inner ( circuit_name )
-        `)
+        .select(`id, track_days!inner ( circuit_name )`)
       
       if (sessionsError) throw sessionsError
 
-      // 3. Calcola i conteggi in memoria
       const counts: Record<string, number> = {}
       sessionsData?.forEach((session: any) => {
         const cName = session.track_days?.circuit_name
-        if (cName) {
-          counts[cName] = (counts[cName] || 0) + 1
-        }
+        if (cName) counts[cName] = (counts[cName] || 0) + 1
       })
 
-      // 4. Unisci il conteggio ai circuiti
       const circuitsWithCounts = circuitsData.map(c => ({
         ...c,
-        sessions_count: counts[c.name] || 0 // Se non c'è match, 0
+        sessions_count: counts[c.name] || 0
       }))
 
       setCircuits(circuitsWithCounts)
@@ -73,6 +67,12 @@ export default function TracksPage() {
       setLoading(false)
     }
   }
+
+  // --- LOGICA DI FILTRO ---
+  const filteredCircuits = circuits.filter(circuit => 
+    circuit.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    circuit.location?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   const handleToggleFavorite = async (circuit: any) => {
     const newStatus = !circuit.is_favorite
@@ -126,13 +126,31 @@ export default function TracksPage() {
     <PageLayout title="Gestione Circuiti" rightAction={headerAction} showBackButton>
       <div className="space-y-4 pb-20">
         
-        {circuits.length === 0 ? (
+        {/* BARRA DI RICERCA */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input 
+            placeholder="Cerca circuito o località..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus-visible:ring-green-500"
+          />
+        </div>
+
+        {/* LISTA FILTRATA */}
+        {filteredCircuits.length === 0 ? (
           <div className="text-center py-10 text-slate-500">
-            <p>Nessun circuito salvato.</p>
-            <p className="text-xs mt-1">Premi "Nuovo" per aggiungere un circuito.</p>
+            {searchTerm ? (
+              <p>Nessun circuito trovato per "{searchTerm}"</p>
+            ) : (
+              <>
+                <p>Nessun circuito salvato.</p>
+                <p className="text-xs mt-1">Premi "Nuovo" per aggiungere un circuito.</p>
+              </>
+            )}
           </div>
         ) : (
-          circuits.map((circuit) => (
+          filteredCircuits.map((circuit) => (
             <Card 
               key={circuit.id} 
               className={`
@@ -186,20 +204,34 @@ export default function TracksPage() {
                     </h3>
                     
                     <div className="flex flex-col gap-1 mt-1 text-sm text-slate-500 dark:text-slate-400">
+                      
+                      {/* LINK UTILI (Mappa + Meteo) */}
                       {circuit.location && (
-                        <a 
-                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(circuit.location)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 hover:text-green-600 hover:underline transition-colors"
-                        >
-                          <MapPin size={12} /> {circuit.location}
-                          <Navigation size={10} className="ml-1 opacity-70" />
-                        </a>
+                        <div className="flex items-center gap-3">
+                          <a 
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(circuit.location)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 hover:text-green-600 hover:underline transition-colors"
+                            title="Apri Navigatore"
+                          >
+                            <Navigation size={12} /> {circuit.location}
+                          </a>
+
+                          {/* NUOVO LINK METEO */}
+                          <a 
+                            href={`https://www.google.com/search?q=meteo+${encodeURIComponent(circuit.location)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-blue-500 hover:text-blue-600 hover:underline transition-colors"
+                            title="Vedi Meteo"
+                          >
+                            <CloudSun size={12} /> Meteo
+                          </a>
+                        </div>
                       )}
                       
                       <div className="flex flex-wrap gap-2 mt-2">
-                        {/* BADGE SESSIONI */}
                         <span className={`flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full font-bold border ${circuit.sessions_count > 0 ? 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300' : 'bg-slate-50 dark:bg-slate-900 border-transparent text-slate-400'}`}>
                           <Flag size={10} /> {circuit.sessions_count} Sessioni
                         </span>
