@@ -23,6 +23,7 @@ interface BikeCardMenuProps {
     name: string | null
     weight: number | null
     is_active: boolean
+    color: string | null
   }
 }
 

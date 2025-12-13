@@ -18,7 +18,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
 } from "@/components/ui/select"
 import { 
-  User, LogOut, Moon, Sun, FileText, Shield, Sliders, Github, Loader2, Fingerprint 
+  User, LogOut, Moon, Sun, FileText, Shield, Sliders, Github, Loader2, Fingerprint, ChevronRight, BookOpen 
 } from "lucide-react"
 import { toast } from "sonner"
 import { EditProfileDialog } from "./edit-profile-dialog"
@@ -229,19 +229,32 @@ export default function SettingsPage() {
       </Card>
 
       {/* 3. INFO LEGALI */}
-      <Card className="dark:bg-slate-900 dark:border-slate-800 mb-8">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg dark:text-white">Dati</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-2">
-          <Button variant="outline" disabled className="w-full justify-start gap-2 dark:border-slate-700 opacity-50">
-            <FileText size={16} /> Esporta Backup (Presto)
-          </Button>
-          <Button variant="outline" disabled className="w-full justify-start gap-2 dark:border-slate-700 opacity-50">
-            <Shield size={16} /> Privacy Policy
-          </Button>
-        </CardContent>
-      </Card>
+      <Card className="dark:bg-slate-900 dark:border-slate-800">
+          <CardHeader>
+            <CardTitle>Supporto</CardTitle>
+            <CardDescription>Risorse utili per utilizzare l'app</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            
+            <Link href="/guide" className="block">
+              <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer group">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 rounded-md">
+                    <BookOpen size={20} />
+                  </div>
+                  <div>
+                    <div className="font-medium text-slate-900 dark:text-slate-100 group-hover:text-blue-600 transition-colors">Manuale Utente</div>
+                    <div className="text-xs text-slate-500">Scopri tutte le funzionalità</div>
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-slate-300" />
+              </div>
+            </Link>
+
+            {/* Qui potresti aggiungere in futuro "Privacy Policy" o "Termini" */}
+
+          </CardContent>
+        </Card>
 
       {/* 4. LOGOUT & FOOTER */}
       <div className="pt-2 pb-10">
