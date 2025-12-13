@@ -1,180 +1,155 @@
 "use client"
 
-import { useEffect, useState, Suspense } from "react"
-import Link from "next/link"
+import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { addSessionToPDF } from "@/lib/pdf-utils"
 import { PageLayout } from "@/components/layout/page-layout"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { toast } from "sonner"
+import { Checkbox } from "@/components/ui/checkbox" 
+import { CompareSheet } from "./compare-sheet"
+import Link from "next/link"
 import { 
-  Calendar, MapPin, Bike, ChevronRight, Timer, Loader2, Printer 
+  Calendar, MapPin, ChevronRight, Search, Bike, ArrowLeftRight, Loader2, FilterX 
 } from "lucide-react"
-import jsPDF from "jspdf"
 
-// ... Definizioni Tipi ...
-type SessionSummary = { id: string, name: string, session_number: number, created_at: string }
-type TrackDay = {
-  id: string, date: string, circuit_name: string,
-  bike: { brand: string, model: string },
-  sessions: SessionSummary[]
-}
-
-// 1. Spostiamo la logica in un componente interno
-function HistoryContent() {
+export default function HistoryPage() {
   const supabase = createClient()
+  const [sessions, setSessions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [history, setHistory] = useState<TrackDay[]>([])
-  const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  
+  // STATI PER LA COMPARAZIONE
+  const [isCompareMode, setIsCompareMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [isSheetOpen, setIsSheetOpen] = useState(false)
 
   useEffect(() => {
     const fetchHistory = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('track_days')
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data } = await supabase
+          .from('sessions')
           .select(`
-            id, date, circuit_name,
-            bike:bikes ( brand, model ),
-            sessions ( id, name, session_number, created_at )
+             *,
+             track_days!inner ( circuit_name, date, bike:bikes (brand, model) )
           `)
-          .order('date', { ascending: false })
-          
-        if (error) throw error
-        if (data) {
-          const sortedData = data.map((day: any) => ({
-            ...day,
-            sessions: day.sessions.sort((a: any, b: any) => a.session_number - b.session_number)
-          }))
-          setHistory(sortedData)
-        }
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setLoading(false)
+          .order('created_at', { ascending: false })
+        
+        if (data) setSessions(data)
       }
+      setLoading(false)
     }
     fetchHistory()
   }, [])
 
-  const handlePrintDay = async (dayId: string, dateStr: string) => {
-    setDownloadingId(dayId)
-    try {
-      const { data: fullSessions, error } = await supabase
-        .from('sessions')
-        .select(`*, track_days ( date, circuit_name, rider_weight, bike:bikes(brand, model) )`)
-        .eq('track_day_id', dayId)
-        .order('session_number', { ascending: true })
-
-      if (error || !fullSessions || fullSessions.length === 0) {
-        toast.warning("Nessuna sessione da stampare")
-        return
-      }
-
-      const doc = new jsPDF()
-      fullSessions.forEach((session, index) => {
-        if (index > 0) doc.addPage();
-        addSessionToPDF(doc, session);
-      })
-
-      const fileName = `SagManager-${dateStr}.pdf`;
-      doc.save(fileName)
-      toast.success("Report scaricato", { description: fileName })
-
-    } catch (err) {
-      toast.error("Errore PDF")
-      console.error(err)
-    } finally {
-      setDownloadingId(null)
-    }
+  // Gestione selezione checkbox
+  const toggleSelection = (id: string) => {
+    setSelectedIds(prev => {
+      if (prev.includes(id)) return prev.filter(i => i !== id)
+      if (prev.length >= 2) return [prev[1], id] // Mantieni sempre max 2, rimuovi il primo
+      return [...prev, id]
+    })
   }
 
-  if (loading) {
-    return (
-      <div className="pt-20 flex justify-center">
-        <Loader2 className="animate-spin text-green-600" />
-      </div>
-    )
-  }
+  // Tasto Header
+  const headerAction = (
+    <Button 
+      size="sm" 
+      variant={isCompareMode ? "secondary" : "ghost"}
+      onClick={() => {
+        setIsCompareMode(!isCompareMode)
+        setSelectedIds([]) // Reset quando esci
+      }}
+      className={isCompareMode ? "bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white" : "text-slate-500"}
+    >
+      {isCompareMode ? <FilterX size={18} /> : <ArrowLeftRight size={18} />}
+      <span className="ml-2 text-xs">{isCompareMode ? "Annulla" : "Confronta"}</span>
+    </Button>
+  )
+
+  if (loading) return <PageLayout title="Storico"><div className="pt-20 flex justify-center"><Loader2 className="animate-spin text-green-600"/></div></PageLayout>
 
   return (
-    <>
-      {history.length === 0 ? (
-        <div className="text-center py-10 text-slate-500">
-          <p>Nessuna giornata registrata.</p>
-        </div>
-      ) : (
-        <div className="space-y-8">
-          {history.map((day) => (
-            <div key={day.id} className="space-y-3">
-              <div className="flex items-center justify-between px-1">
-                <div className="flex items-center gap-3">
-                  <div className="bg-slate-900 dark:bg-green-900/30 text-white dark:text-green-400 p-2.5 rounded-xl shadow-sm">
-                    <Calendar size={20} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg leading-none dark:text-white capitalize">
-                      {new Date(day.date).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}
-                    </h3>
-                    <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      <MapPin size={12} /> {day.circuit_name} 
-                      <span className="mx-1">•</span> 
-                      <Bike size={12} /> {day.bike?.brand} {day.bike?.model}
-                    </div>
-                  </div>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  disabled={downloadingId === day.id}
-                  onClick={() => handlePrintDay(day.id, day.date)}
-                  className="rounded-full border-slate-200 dark:border-slate-700 hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-600 dark:hover:text-green-400"
-                >
-                  {downloadingId === day.id ? <Loader2 size={16} className="animate-spin" /> : <Printer size={16} />}
-                </Button>
-              </div>
-
-              <div className="grid gap-2 pl-2 border-l-2 border-slate-100 dark:border-slate-800 ml-5">
-                {day.sessions.map((session) => (
-                  <Link href={`/history/${session.id}`} key={session.id} className="block group pl-4 relative">
-                     <div className="absolute -left-[21px] top-1/2 -translate-y-1/2 h-3 w-3 rounded-full bg-slate-200 dark:bg-slate-700 group-hover:bg-green-500 transition-colors border-2 border-slate-50 dark:border-slate-950" />
-                    <Card className="hover:border-green-500 dark:hover:border-green-500 transition-all cursor-pointer border-slate-200 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
-                      <CardContent className="p-3 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 font-bold text-xs border border-slate-200 dark:border-slate-700">
-                            #{session.session_number}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-sm text-slate-900 dark:text-slate-100 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">
-                              {session.name}
-                            </p>
-                            <div className="flex items-center gap-1 text-[10px] text-slate-400">
-                              <Timer size={10} />
-                              {new Date(session.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
-                            </div>
-                          </div>
-                        </div>
-                        <ChevronRight className="text-slate-300 group-hover:text-green-500 transition-colors" size={16} />
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ))}
+    <PageLayout title="Storico Sessioni" rightAction={headerAction} showBackButton>
+      
+      {/* FLOATING ACTION BUTTON PER APRIRE IL CONFRONTO */}
+      {isCompareMode && selectedIds.length === 2 && (
+        <div className="fixed bottom-6 left-0 right-0 px-4 z-50 flex justify-center animate-in slide-in-from-bottom-4">
+          <Button 
+            onClick={() => setIsSheetOpen(true)}
+            className="bg-green-600 hover:bg-green-700 text-white shadow-xl rounded-full h-12 px-8 text-base font-bold gap-2"
+          >
+            <ArrowLeftRight size={18} /> Confronta 2 Sessioni
+          </Button>
         </div>
       )}
-    </>
-  )
-}
 
-// 2. Componente Principale con Suspense
-export default function HistoryPage() {
-  return (
-    <PageLayout title="Storico Giornate">
-      <Suspense fallback={<div className="pt-20 flex justify-center"><Loader2 className="animate-spin text-green-600" /></div>}>
-        <HistoryContent />
-      </Suspense>
+      <div className="space-y-3 pb-24">
+        {sessions.length === 0 ? (
+          <div className="text-center py-10 text-slate-400">Nessuna sessione trovata</div>
+        ) : (
+          sessions.map((session) => (
+            <div key={session.id} className="flex items-center gap-3">
+              
+              {/* CHECKBOX (Visibile solo in Compare Mode) */}
+              {isCompareMode && (
+                <div className="animate-in fade-in zoom-in duration-200">
+                  <Checkbox 
+                    checked={selectedIds.includes(session.id)}
+                    onCheckedChange={() => toggleSelection(session.id)}
+                    className="h-6 w-6 border-slate-300 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+                  />
+                </div>
+              )}
+
+              {/* CARD SESSIONE */}
+              <Link 
+                href={isCompareMode ? "#" : `/history/${session.id}`} 
+                onClick={(e) => isCompareMode && e.preventDefault()} // Disabilita link in compare mode
+                className={`flex-1 block transition-all ${isCompareMode && selectedIds.includes(session.id) ? 'opacity-100' : isCompareMode ? 'opacity-60' : 'opacity-100'}`}
+              >
+                <Card className={`border-slate-200 dark:border-slate-800 dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${isCompareMode && selectedIds.includes(session.id) ? 'ring-2 ring-green-500 border-transparent' : ''}`}>
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-bold text-slate-900 dark:text-white text-base">
+                          {session.name}
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono text-slate-500">
+                          #{session.session_number}
+                        </span>
+                      </div>
+                      
+                      <div className="flex flex-col gap-1 text-xs text-slate-500 dark:text-slate-400">
+                        <div className="flex items-center gap-2">
+                          <MapPin size={12} className="text-green-600" />
+                          {session.track_days?.circuit_name}
+                        </div>
+                        <div className="flex items-center gap-2">
+                           <Calendar size={12} />
+                           {new Date(session.created_at).toLocaleDateString('it-IT')}
+                           <span className="text-slate-300 dark:text-slate-700">•</span>
+                           <Bike size={12} />
+                           {session.track_days?.bike?.model}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {!isCompareMode && <ChevronRight size={18} className="text-slate-300" />}
+                  </CardContent>
+                </Card>
+              </Link>
+            </div>
+          ))
+        )}
+      </div>
+
+      <CompareSheet 
+        isOpen={isSheetOpen} 
+        onClose={() => setIsSheetOpen(false)} 
+        sessionA={sessions.find(s => s.id === selectedIds[0])}
+        sessionB={sessions.find(s => s.id === selectedIds[1])}
+      />
+
     </PageLayout>
   )
 }
