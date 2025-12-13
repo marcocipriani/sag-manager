@@ -8,6 +8,16 @@ export default {
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  // force TW to render bike colors
+  safelist: [
+    {
+      pattern: /(bg|border)-(slate|red|orange|amber|green|cyan|blue|violet|pink)-(400|500|600)/,
+      variants: ['hover', 'focus'],
+    },
+    {
+      pattern: /bg-(slate|red|orange|amber|green|cyan|blue|violet|pink)-(400|500|600)\/10/,
+    }
+  ],
   theme: {
     extend: {
       colors: {

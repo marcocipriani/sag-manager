@@ -15,6 +15,7 @@ export async function addBike(formData: FormData) {
   const year = formData.get("year") as string
   const name = formData.get("name") as string
   const weight = formData.get("weight") as string
+  const color = formData.get("color") as string
 
   // Controlla se è la prima moto in assoluto (se sì, la rendiamo attiva di default)
   const { count } = await supabase.from('bikes').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
@@ -25,9 +26,10 @@ export async function addBike(formData: FormData) {
     brand,
     model,
     year: parseInt(year),
-    name: name || `${brand} ${model}`, // Se non dai un nome, usa Marca Modello
+    name: name || `${brand} ${model}`,
     weight: parseFloat(weight) || 0,
-    is_active: isFirstBike // True se è la prima, altrimenti False
+    color: color || 'slate',
+    is_active: isFirstBike
   })
 
   if (error) return { error: error.message }
@@ -81,6 +83,7 @@ export async function updateBike(bikeId: string, formData: FormData) {
   const year = formData.get("year") as string
   const name = formData.get("name") as string
   const weight = formData.get("weight") as string
+  const color = formData.get("color") as string
 
   const { error } = await supabase
     .from('bikes')
@@ -90,6 +93,7 @@ export async function updateBike(bikeId: string, formData: FormData) {
       year: parseInt(year),
       name: name || `${brand} ${model}`,
       weight: parseFloat(weight) || 0,
+      color: color || 'slate',
     })
     .eq('id', bikeId)
     .eq('user_id', user.id) // Sicurezza extra: modifica solo se è sua

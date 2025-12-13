@@ -8,10 +8,11 @@ import { Label } from "@/components/ui/label"
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose
 } from "@/components/ui/dialog"
-import { Loader2, Pencil } from "lucide-react"
+import { Loader2, Check } from "lucide-react"
 import { toast } from "sonner"
+import { BIKE_COLORS } from "@/lib/bike-colors"
+import { cn } from "@/lib/utils"
 
-// Definiamo il tipo per la moto
 interface BikeData {
   id: string
   brand: string
@@ -19,6 +20,7 @@ interface BikeData {
   year: number
   name: string | null
   weight: number | null
+  color: string | null
 }
 
 interface EditBikeDialogProps {
@@ -29,6 +31,9 @@ interface EditBikeDialogProps {
 
 export function EditBikeDialog({ bike, open, onOpenChange }: EditBikeDialogProps) {
   const [loading, setLoading] = useState(false)
+  
+  // Inizializza con il colore attuale della moto, oppure 'slate' se non ne ha uno
+  const [selectedColor, setSelectedColor] = useState(bike.color || "slate")
 
   const handleSubmit = async (formData: FormData) => {
     setLoading(true)
@@ -51,6 +56,7 @@ export function EditBikeDialog({ bike, open, onOpenChange }: EditBikeDialogProps
           <DialogTitle>Modifica Moto</DialogTitle>
         </DialogHeader>
         <form action={handleSubmit} className="space-y-4 py-2">
+          
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="brand">Marca</Label>
@@ -61,6 +67,7 @@ export function EditBikeDialog({ bike, open, onOpenChange }: EditBikeDialogProps
               <Input id="model" name="model" defaultValue={bike.model} required className="dark:bg-slate-950" />
             </div>
           </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="year">Anno</Label>
@@ -71,6 +78,34 @@ export function EditBikeDialog({ bike, open, onOpenChange }: EditBikeDialogProps
               <Input id="weight" name="weight" type="number" step="0.1" defaultValue={bike.weight || ""} className="dark:bg-slate-950" />
             </div>
           </div>
+
+          {/* SELETTORE COLORE */}
+          <div className="space-y-2">
+            <Label>Colore Identificativo</Label>
+            {/* Input nascosto per passare il valore alla Server Action */}
+            <input type="hidden" name="color" value={selectedColor} />
+            
+            <div className="flex flex-wrap gap-2">
+              {BIKE_COLORS.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setSelectedColor(c.id)}
+                  className={cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center transition-all border-2",
+                    c.class, // Colore sfondo
+                    selectedColor === c.id 
+                      ? "border-white dark:border-slate-200 ring-2 ring-slate-400 scale-110 shadow-sm" 
+                      : "border-transparent opacity-70 hover:opacity-100 hover:scale-105"
+                  )}
+                  title={c.label}
+                >
+                  {selectedColor === c.id && <Check size={14} className="text-white drop-shadow-md" />}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="name">Soprannome</Label>
             <Input id="name" name="name" defaultValue={bike.name || ""} placeholder='es. "La Bestia"' className="dark:bg-slate-950" />
