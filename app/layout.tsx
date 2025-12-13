@@ -1,4 +1,3 @@
-// src/app/layout.tsx
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
@@ -7,29 +6,31 @@ import { Toaster } from "@/components/ui/sonner"
 
 const inter = Inter({ subsets: ["latin"] });
 
-// 1. Configurazione PWA e Icone
+// 1. Configurazione Viewport
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false, // Disabilita zoom per feel "App Nativa"
+  themeColor: "#020617",
+};
+
+// 2. Configurazione Metadata e PWA
 export const metadata: Metadata = {
   title: "SagManager",
   description: "Il tuo garage digitale per i setup da pista",
-  manifest: "/manifest.json", 
+  manifest: "/manifest.webmanifest", 
+  
   icons: {
-    icon: "/icon.svg", 
-    apple: "/icon.svg",
+    icon: "/icon.svg",
+    apple: "/apple-icon.png", 
   },
+  
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "SagManager",
   },
-};
-
-// 2. Configurazione Viewport (Disabilita lo zoom su mobile per sembrare nativa)
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  themeColor: "#0f172a", // Colore barra di stato (Slate 900)
 };
 
 export default function RootLayout({
@@ -47,8 +48,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
-          {/* Componente per le notifiche (Sonner) */}
-          <Toaster />
+          <Toaster position="top-center" />
         </ThemeProvider>
       </body>
     </html>
