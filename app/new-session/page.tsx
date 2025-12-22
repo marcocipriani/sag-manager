@@ -182,7 +182,6 @@ export default function NewSessionPage() {
 
             if (lastSessionData) {
               // Mappiamo i dati dal DB al formato SetupData
-              // NOTA: Copiamo solo i dati tecnici, NON i tempi sul giro (quelli ripartono da zero)
               const technicalData = {
                 tiresModel: lastSessionData.tires_model,
                 tirePressF: lastSessionData.tire_pressure_f,
@@ -214,18 +213,16 @@ export default function NewSessionPage() {
                 trail: lastSessionData.trail
               }
 
-              // 1. Popoliamo il form corrente
+              // 1. Popoliamo il form corrente (senza tempi)
               setFormData(prev => ({
                 ...prev,
                 circuit: lastSessionData.track_days.circuit_name,
                 ...technicalData,
-                // Assicuriamoci che i campi tempi siano vuoti per la nuova sessione
                 bestLap: "", avgLap: "", idealLap: "", 
                 split1: "", split2: "", split3: "", topSpeed: 0
               }))
 
               // 2. Salviamo il riferimento (Per i "previousValue" degli stepper)
-              // Qui includiamo tutto nel reference, anche se per i tempi non servirebbe
               setReferenceData({
                 ...DEFAULT_DATA,
                 ...technicalData
@@ -482,11 +479,11 @@ export default function NewSessionPage() {
       {/* --- TABS --- */}
       <Tabs defaultValue="performance" className="w-full">
         <TabsList className="grid w-full grid-cols-5 h-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1 rounded-xl shadow-sm mb-6">
-           <TabsTrigger value="performance" className="flex flex-col gap-1 h-full rounded-lg"><Gauge size={18} /><span className="text-[9px] uppercase">Perf</span></TabsTrigger>
-           <TabsTrigger value="tires" className="flex flex-col gap-1 h-full rounded-lg"><Disc size={18} /><span className="text-[9px] uppercase">Gomme</span></TabsTrigger>
-           <TabsTrigger value="fork" className="flex flex-col gap-1 h-full rounded-lg"><ArrowDownToLine size={18} /><span className="text-[9px] uppercase">Forca</span></TabsTrigger>
-           <TabsTrigger value="shock" className="flex flex-col gap-1 h-full rounded-lg"><ArrowUpFromLine size={18} /><span className="text-[9px] uppercase">Mono</span></TabsTrigger>
-           <TabsTrigger value="geo" className="flex flex-col gap-1 h-full rounded-lg"><ClipboardList size={18} /><span className="text-[9px] uppercase">Note</span></TabsTrigger>
+           <TabsTrigger value="performance" className="flex flex-col gap-1 h-full rounded-lg data-[state=active]:bg-slate-100 dark:data-[state=active]:bg-slate-800 data-[state=active]:text-green-600 dark:data-[state=active]:text-green-400 transition-all font-bold"><Gauge size={18} /><span className="text-[9px] uppercase">Perf</span></TabsTrigger>
+           <TabsTrigger value="tires" className="flex flex-col gap-1 h-full rounded-lg data-[state=active]:bg-slate-100 dark:data-[state=active]:bg-slate-800 data-[state=active]:text-green-600 dark:data-[state=active]:text-green-400 transition-all font-bold"><Disc size={18} /><span className="text-[9px] uppercase">Gomme</span></TabsTrigger>
+           <TabsTrigger value="fork" className="flex flex-col gap-1 h-full rounded-lg data-[state=active]:bg-slate-100 dark:data-[state=active]:bg-slate-800 data-[state=active]:text-green-600 dark:data-[state=active]:text-green-400 transition-all font-bold"><ArrowDownToLine size={18} /><span className="text-[9px] uppercase">Forca</span></TabsTrigger>
+           <TabsTrigger value="shock" className="flex flex-col gap-1 h-full rounded-lg data-[state=active]:bg-slate-100 dark:data-[state=active]:bg-slate-800 data-[state=active]:text-green-600 dark:data-[state=active]:text-green-400 transition-all font-bold"><ArrowUpFromLine size={18} /><span className="text-[9px] uppercase">Mono</span></TabsTrigger>
+           <TabsTrigger value="geo" className="flex flex-col gap-1 h-full rounded-lg data-[state=active]:bg-slate-100 dark:data-[state=active]:bg-slate-800 data-[state=active]:text-green-600 dark:data-[state=active]:text-green-400 transition-all font-bold"><ClipboardList size={18} /><span className="text-[9px] uppercase">Note</span></TabsTrigger>
         </TabsList>
 
         {/* 1. PERFORMANCE */}
