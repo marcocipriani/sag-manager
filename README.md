@@ -1,92 +1,109 @@
 # 🏍️ SagManager
 
-**SagManager** is a Progressive Web App (PWA) designed for motorcycle track day enthusiasts. It replaces the traditional paper "setup sheets" with a mobile-first interface optimized for quick data entry in the pit box.
+**SagManager** è una Progressive Web App (PWA) progettata per gli appassionati di giornate in pista. Sostituisce i tradizionali fogli di carta con un'interfaccia mobile-first ottimizzata per l'inserimento rapido dei dati ai box, permettendoti di tracciare setup, performance e manutenzione.
 
-🔗 [Project Demo](https://sag-manager.vercel.app/)
+🔗 [Demo del Progetto](https://sag-manager.vercel.app/)
 
-![Project Status](https://img.shields.io/badge/Status-In%20Development-orange)
-![License](https://img.shields.io/badge/License-MIT-blue)
+![Version](https://img.shields.io/badge/Version-v1.1.0-green)
+![Status](https://img.shields.io/badge/Status-Active%20Dev-blue)
+![License](https://img.shields.io/badge/License-MIT-gray)
 
-## 🎯 The Goal
+## 🎯 L'Obiettivo
 
-Every rider knows the struggle: you adjust your fork compression, go out for a session, come back, and forget what you changed. Paper sheets get lost, dirty with grease, or destroyed by rain.
+Ogni pilota conosce il problema: modifichi la compressione della forcella, esci per un turno, torni e ti sei dimenticato cosa hai cambiato o che passo avevi. I fogli di carta si perdono, si sporcano di grasso o si bagnano.
 
-**SagManager allows you to:**
-1.  **Digitize your garage:** Keep track of multiple bikes.
-2.  **Smart Inputs:** Adjust values (clicks, preload turns, tire pressure) using large `+` / `-` buttons. No tiny keyboards needed while wearing gloves.
-3.  **Inherit Settings:** Every new session starts with the previous session's setup. Just tweak what changed.
-4.  **Visualize History:** See how your setup evolved throughout the day.
-5.  **Export to PDF:** Generate a professional report to print or share.
+**SagManager ti permette di:**
+1.  **Digitalizzare il Garage:** Gestisci multiple moto, ognuna con il proprio **colore identificativo** per riconoscerle a colpo d'occhio.
+2.  **Calcolatore SAG Integrato:** Inserisci le misurazioni (L1, L2, L3) e l'app calcola automaticamente Static e Rider Sag, indicando se sei nel range corretto.
+3.  **Modalità Confronto (Killer Feature):** Seleziona due sessioni qualsiasi e visualizza una diff "Side-by-Side" che evidenzia solo i parametri modificati (es. "Compressione: 10 -> 12").
+4.  **Eredità Intelligente:** Ogni nuovo turno pre-carica automaticamente l'ultimo setup utilizzato su quella moto.
+5.  **Performance & Telemetria:** Traccia Best Lap, Ideal Time, Split e Velocità Massima per ogni turno.
+6.  **Manuale Integrato:** Guida utente accessibile direttamente in-app.
+
+## 📱 Funzionalità Chiave v1.1.0
+
+### 🔧 Gestione Sospensioni & Geometrie
+Tracciamento dettagliato per Forcella e Mono:
+-   **Molle & Precarico** (mm o giri)
+-   **Idraulica** (Click Compressione/Estensione) con input `+` / `-` grandi per l'uso con i guanti.
+-   **Geometrie:** Interasse, Inclinazione, Avancorsa (Trail).
+-   **Gomme:** Pressioni a caldo/freddo e modello.
+
+### ⏱️ Performance Tracker
+Non solo setup meccanico. Per ogni turno puoi registrare:
+-   Orario Inizio/Fine.
+-   Best Lap, Passo Medio e Ideal Lap.
+-   Split 1, 2, 3 e Top Speed.
+
+### 📲 PWA (Progressive Web App)
+L'app è installabile nativamente su iOS e Android.
+-   Funziona a schermo intero (senza barre del browser).
+-   Icona dedicata in Home Screen.
+-   Disabilita lo zoom accidentale per un feeling nativo.
 
 ## 🛠️ Tech Stack
 
-Built with a modern, scalable, and performance-focused stack:
+Costruito con uno stack moderno, scalabile e focalizzato sulle performance:
 
--   **Frontend:** [Next.js 14](https://nextjs.org/) (App Router)
+-   **Frontend:** [Next.js 15](https://nextjs.org/) (App Router)
 -   **Styling:** [Tailwind CSS](https://tailwindcss.com/) + [Shadcn/UI](https://ui.shadcn.com/)
 -   **Backend & Auth:** [Supabase](https://supabase.com/) (PostgreSQL)
 -   **Icons:** [Lucide React](https://lucide.dev/)
--   **PDF Generation:** `jspdf`
+-   **Feedback UI:** Sonner (Toast notifications)
 
-## 🚀 Getting Started
+## 🚀 Installazione e Setup
 
-### Prerequisites
+### Prerequisiti
 
 -   Node.js 18+
--   A [Supabase](https://supabase.com/) account (Free tier is fine)
+-   Un account [Supabase](https://supabase.com/) (Il piano Free va benissimo)
 
-### Installation
+### Passaggi
 
-1.  **Clone the repo**
+1.  **Clona la repository**
     ```bash
-    git clone [https://github.com/YOUR_USERNAME/sag-manager.git](https://github.com/YOUR_USERNAME/sag-manager.git)
+    git clone [https://github.com/TUO_USERNAME/sag-manager.git](https://github.com/TUO_USERNAME/sag-manager.git)
     cd sag-manager
     ```
 
-2.  **Install dependencies**
+2.  **Installa le dipendenze**
     ```bash
     npm install
     ```
 
-3.  **Environment Variables**
-    Create a `.env.local` file in the root directory and add your Supabase credentials:
+3.  **Variabili d'Ambiente**
+    Crea un file `.env.local` nella root e aggiungi le credenziali Supabase:
     ```env
-    NEXT_PUBLIC_SUPABASE_URL=your_project_url
-    NNEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_key
+    NEXT_PUBLIC_SUPABASE_URL=la_tua_url_progetto
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=la_tua_chiave_anon
     ```
 
-4.  **Database Setup**
-    Run the SQL script found in `supabase/schema.sql` (or check the docs) inside your Supabase SQL Editor to create the `bikes`, `track_days`, and `sessions` tables.
+4.  **Setup Database**
+    Esegui gli script SQL forniti nella cartella `supabase/` nel SQL Editor di Supabase per creare le tabelle (`bikes`, `track_days`, `sessions`, `circuits`).
 
-5.  **Run the App**
+5.  **Avvia l'App**
     ```bash
     npm run dev
     ```
-    Open [http://localhost:3000](http://localhost:3000) with your browser.
+    Apri [http://localhost:3000](http://localhost:3000).
 
-## 📱 Features Breakdown
+## 📦 Versioning
 
-### 🔧 Suspension Management
-Detailed tracking for both Fork and Shock:
--   **Spring Rate (K)**
--   **Preload** (mm or turns)
--   **Compression & Rebound** (clicks)
--   **Static & Dynamic Sag**
+Adottiamo il Semantic Versioning (SemVer):
 
-### 📐 Geometry & Tires
--   Track Wheelbase, Rake, and Trail.
--   Log tire compounds and hot/cold pressures.
+-   **v1.1.0 (Corrente):** Aggiunta PWA, Calcolatore Sag, Modalità Confronto, Tab Performance, Gestione Colori Moto.
+-   **v1.0.0:** Rilascio Iniziale (Gestione base sessioni e garage).
 
-## 🤝 Contributing
+## 🤝 Contribuire
 
-Contributions are welcome! Please open an issue or submit a pull request for any bugs or features.
+I contributi sono benvenuti!
 
-1.  Fork the Project
-2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4.  Push to the Branch (`git push origin feature/AmazingFeature`)
-5.  Open a Pull Request
+1.  Forka il progetto
+2.  Crea il tuo Feature Branch (`git checkout -b feature/NuovaFunzione`)
+3.  Committa i cambiamenti (`git commit -m 'Aggiunta NuovaFunzione'`)
+4.  Pusha sul Branch (`git push origin feature/NuovaFunzione`)
+5.  Apri una Pull Request
 
-## 📄 License
+## 📄 Licenza
 
-Distributed under the MIT License.
+Distribuito sotto licenza MIT.
