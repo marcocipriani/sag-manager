@@ -1,121 +1,103 @@
 "use client"
 
 import { useState } from "react"
-import { updateBike } from "./actions"
+import { toast } from "sonner"
+import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose
-} from "@/components/ui/dialog"
-import { Loader2, Check } from "lucide-react"
-import { toast } from "sonner"
-import { BIKE_COLORS } from "@/lib/bike-colors"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import { updateBike } from "./actions"
 
-interface BikeData {
-  id: string
-  brand: string
-  model: string
-  year: number
-  name: string | null
-  weight: number | null
-  color: string | null
-}
+const BIKE_COLORS = [
+  "bg-red-500", "bg-blue-500", "bg-green-500", "bg-yellow-500", 
+  "bg-orange-500", "bg-purple-500", "bg-pink-500", "bg-indigo-500", "bg-slate-500"
+]
 
 interface EditBikeDialogProps {
-  bike: BikeData
+  bike: any
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
 export function EditBikeDialog({ bike, open, onOpenChange }: EditBikeDialogProps) {
   const [loading, setLoading] = useState(false)
-  
-  // Inizializza con il colore attuale della moto, oppure 'slate' se non ne ha uno
-  const [selectedColor, setSelectedColor] = useState(bike.color || "slate")
+  const [color, setColor] = useState(bike.color || "bg-red-500")
 
-  const handleSubmit = async (formData: FormData) => {
+  async function onSubmit(formData: FormData) {
     setLoading(true)
-    // Passiamo l'ID della moto e i dati del form
-    const result = await updateBike(bike.id, formData)
-    setLoading(false)
-
-    if (result?.error) {
-      toast.error("Errore", { description: result.error })
+    formData.append("color", color)
+    
+    const res = await updateBike(bike.id, formData)
+    
+    if (res?.error) {
+      toast.error(res.error)
     } else {
-      toast.success("Moto aggiornata!")
-      onOpenChange(false) // Chiude il modal
+      toast.success("Moto aggiornata")
+      onOpenChange(false)
     }
+    setLoading(false)
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md dark:bg-slate-900 dark:border-slate-800">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Modifica Moto</DialogTitle>
+          <DialogDescription>Aggiorna i dettagli della moto.</DialogDescription>
         </DialogHeader>
-        <form action={handleSubmit} className="space-y-4 py-2">
-          
+        
+        <form action={onSubmit} className="grid gap-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="brand">Marca</Label>
-              <Input id="brand" name="brand" defaultValue={bike.brand} required className="dark:bg-slate-950" />
+              <Input id="brand" name="brand" defaultValue={bike.brand} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="model">Modello</Label>
-              <Input id="model" name="model" defaultValue={bike.model} required className="dark:bg-slate-950" />
+              <Input id="model" name="model" defaultValue={bike.model} required />
             </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="name">Nome (Opzionale)</Label>
+            <Input id="name" name="name" defaultValue={bike.name || ""} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="year">Anno</Label>
-              <Input id="year" name="year" type="number" defaultValue={bike.year} required className="dark:bg-slate-950" />
+              <Input id="year" name="year" type="number" defaultValue={bike.year} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="weight">Peso (kg)</Label>
-              <Input id="weight" name="weight" type="number" step="0.1" defaultValue={bike.weight || ""} className="dark:bg-slate-950" />
+              <Input id="weight" name="weight" type="number" defaultValue={bike.weight} />
             </div>
           </div>
 
-          {/* SELETTORE COLORE */}
-          <div className="space-y-2">
-            <Label>Colore Identificativo</Label>
-            {/* Input nascosto per passare il valore alla Server Action */}
-            <input type="hidden" name="color" value={selectedColor} />
-            
-            <div className="flex flex-wrap gap-2">
-              {BIKE_COLORS.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => setSelectedColor(c.id)}
-                  className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center transition-all border-2",
-                    c.class, // Colore sfondo
-                    selectedColor === c.id 
-                      ? "border-white dark:border-slate-200 ring-2 ring-slate-400 scale-110 shadow-sm" 
-                      : "border-transparent opacity-70 hover:opacity-100 hover:scale-105"
-                  )}
-                  title={c.label}
-                >
-                  {selectedColor === c.id && <Check size={14} className="text-white drop-shadow-md" />}
-                </button>
-              ))}
-            </div>
+          <div className="space-y-3">
+             <Label>Colore Identificativo</Label>
+             <div className="flex flex-wrap gap-2">
+               {BIKE_COLORS.map((c) => (
+                 <button
+                   key={c}
+                   type="button"
+                   onClick={() => setColor(c)}
+                   className={cn(
+                     "w-8 h-8 rounded-full transition-all border-2",
+                     c,
+                     color === c ? "border-white scale-110 shadow-lg" : "border-transparent opacity-70 hover:opacity-100"
+                   )}
+                 />
+               ))}
+             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="name">Soprannome</Label>
-            <Input id="name" name="name" defaultValue={bike.name || ""} placeholder='es. "La Bestia"' className="dark:bg-slate-950" />
-          </div>
-
-          <DialogFooter className="pt-4">
-            <Button variant="ghost" type="button" onClick={() => onOpenChange(false)}>Annulla</Button>
-            <Button type="submit" disabled={loading} className="bg-green-600 hover:bg-green-700 text-white">
-              {loading ? <Loader2 className="animate-spin" /> : "Salva Modifiche"}
-            </Button>
+          <DialogFooter className="mt-4">
+             <Button type="submit" disabled={loading} className="w-full bg-slate-900 text-white dark:bg-white dark:text-black">
+               {loading ? <Loader2 className="animate-spin" /> : "Salva Modifiche"}
+             </Button>
           </DialogFooter>
         </form>
       </DialogContent>

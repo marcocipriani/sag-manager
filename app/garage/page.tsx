@@ -3,10 +3,12 @@ import { createClient } from "@/lib/supabase/server"
 import { PageLayout } from "@/components/layout/page-layout"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { AddBikeDialog } from "./add-bike-dialog"
 import { BikeCardMenu } from "./bike-card-menu"
-import { Weight, Loader2 } from "lucide-react"
-import { getBikeColor } from "@/lib/bike-colors"
+import { setActiveBike } from "./actions"
+import { Weight, Loader2, Plus, CheckCircle2 } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 async function GarageContent() {
   const supabase = await createClient()
@@ -16,82 +18,117 @@ async function GarageContent() {
     .from('bikes')
     .select('*')
     .eq('user_id', user?.id)
-    .order('is_active', { ascending: false }) // Prima le attive
-    .order('created_at', { ascending: false }) // Poi le più recenti
+    .order('is_active', { ascending: false })
+    .order('created_at', { ascending: false })
 
   return (
     <div className="space-y-4">
-      {/* LISTA MOTO */}
-      {bikes?.map((bike) => {
-        // 1. RECUPERIAMO IL COLORE DELLA MOTO
-        const bikeColor = getBikeColor(bike.color)
-
-        return (
+      <div className="flex flex-col gap-4">
+        {bikes?.map((bike) => (
           <Card 
             key={bike.id} 
-            className={`
-              relative overflow-hidden transition-all dark:bg-slate-900 border
-              ${bike.is_active 
-                ? 'ring-2 ring-green-500 border-transparent shadow-md' 
-                // Se inattiva, usiamo lo sfondo leggero del colore scelto (bgLight)
-                : `hover:border-slate-300 dark:hover:border-slate-700 ${bikeColor.bgLight} border-transparent`
-              }
-            `}
+            className={cn(
+              "overflow-hidden transition-all dark:bg-slate-950 border-0 shadow-md group",
+              bike.is_active ? "ring-1 ring-green-500" : ""
+            )}
           >
             <CardContent className="p-0">
-              <div className="flex h-full">
-
-                {/* 2. BANDA LATERALE: Usa sempre il colore del brand (es. Rosso) */}
-                <div className={`w-2 shrink-0 ${bikeColor.class}`} />
+              <div className="flex h-full min-h-[140px]">
                 
-                <div className="flex-1 p-4 pl-3">
-                  <div className="flex justify-between items-start mb-1">
-                    <div>
-                      {bike.is_active && (
-                        <Badge variant="secondary" className="mb-2 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-100 border-none text-[10px] px-2 h-5">
+                {/* Fascia colorata laterale */}
+                <div className={cn("w-3 shrink-0", bike.color || "bg-slate-500")} />
+
+                {/* Contenitore principale (Relative per posizionare il menu) */}
+                <div className="flex-1 flex flex-col bg-slate-900/40 relative">
+                  
+                  {/* MENU ASSOLUTO IN ALTO A DESTRA */}
+                  <div className="absolute top-2 right-2 z-10">
+                    <BikeCardMenu bike={bike} />
+                  </div>
+
+                  {/* PARTE SUPERIORE: Badge e Titolo */}
+                  <div className="p-4 pb-5 flex-1 flex flex-col justify-center">
+                    
+                    {/* Renderizza il Badge solo se attivo (occupa spazio solo se presente) */}
+                    {bike.is_active && (
+                      <div className="mb-2">
+                        <Badge className="bg-green-900/30 text-green-400 border-none text-[10px] px-2 py-0.5 rounded-sm uppercase font-bold tracking-wider">
                           IN USO
                         </Badge>
-                      )}
-                      <h3 className="font-bold text-lg text-slate-900 dark:text-white leading-none mb-1">
-                        {bike.brand} {bike.model} <span className="text-slate-400 font-normal text-sm">{bike.year}</span>
+                      </div>
+                    )}
+
+                    {/* Titolo Moto */}
+                    <div className="pr-8"> {/* Padding right per evitare sovrapposizione col menu */}
+                      <h3 className="font-bold text-xl text-white leading-tight">
+                        {bike.brand} {bike.model} 
+                        <span className="text-slate-500 text-base font-normal ml-2">{bike.year}</span>
                       </h3>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">"{bike.name}"</p>
+                      {bike.name && <p className="text-sm text-slate-400 mt-1 font-medium">"{bike.name}"</p>}
                     </div>
-                    
-                    {/* MENU AZIONI */}
-                    <BikeCardMenu bike={bike} />
-                    
                   </div>
 
-                  <div className="flex gap-4 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 items-center">
-                    <div className="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-400">
-                      <Weight size={14} className="text-slate-400" />
-                      {bike.weight ? `${bike.weight} kg` : 'N/D'}
+                  {/* DIVIDER */}
+                  <div className="h-px w-full bg-slate-800" />
+
+                  {/* FOOTER */}
+                  <div className="flex justify-between items-center p-3 px-4 bg-slate-900/80">
+                    <div className="flex items-center gap-2 text-sm text-slate-400 font-medium">
+                      <Weight size={16} />
+                      {bike.weight ? <span>{bike.weight} kg</span> : <span>-</span>}
                     </div>
 
-                    {/* 3. PALLINO COLORATO NEL FOOTER (Opzionale, ma carino) */}
-                    <div className={`ml-auto w-2 h-2 rounded-full ${bikeColor.class}`} />
+                    <div className="flex items-center gap-3">
+                      {!bike.is_active && (
+                        <form action={async () => {
+                          "use server"
+                          await setActiveBike(bike.id)
+                        }}>
+                          <button className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white uppercase transition-colors">
+                             <CheckCircle2 size={16} /> USA QUESTA
+                          </button>
+                        </form>
+                      )}
+                      <div className={cn("w-2 h-2 rounded-full", bike.color || "bg-slate-500")} />
+                    </div>
                   </div>
+
                 </div>
               </div>
             </CardContent>
           </Card>
-        )
-      })}
+        ))}
+      </div>
 
-      {/* DIALOG AGGIUNGI MOTO */}
-      <AddBikeDialog />
+      <AddBikeDialog>
+        <Button 
+          variant="outline" 
+          className="w-full h-16 border-dashed border-slate-800 bg-transparent text-slate-500 hover:text-white hover:bg-slate-900 hover:border-slate-600 flex items-center gap-2 text-base transition-colors"
+        >
+          <Plus className="h-5 w-5" /> Aggiungi una nuova moto
+        </Button>
+      </AddBikeDialog>
     </div>
   )
 }
 
 export default function GaragePage() {
   return (
-    <PageLayout title="Garage">
+    <PageLayout 
+      title="Il mio Garage" 
+      showBackButton={true}
+      rightAction={
+        <AddBikeDialog>
+          <Button size="icon" className="bg-green-600 hover:bg-green-700 text-white rounded-md h-9 w-9 shadow-sm border-0">
+            <Plus size={20} />
+          </Button>
+        </AddBikeDialog>
+      }
+    >
       <Suspense fallback={
         <div className="flex flex-col items-center justify-center pt-20 text-slate-400">
           <Loader2 className="h-8 w-8 animate-spin text-green-600 mb-2" />
-          <p className="text-sm">Recupero le tue moto...</p>
+          <p className="text-sm">Caricamento Garage...</p>
         </div>
       }>
         <GarageContent />
