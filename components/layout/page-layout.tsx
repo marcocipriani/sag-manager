@@ -5,6 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { ThemeSwitcher } from "@/components/theme-switcher"
 
 interface PageLayoutProps {
   children: React.ReactNode
@@ -32,8 +33,8 @@ export function PageLayout({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <header className="sticky top-0 z-40 w-full border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+      <header className="sticky top-0 z-40 w-full border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md transition-colors duration-300">
         <div className="flex h-16 items-center px-4 max-w-5xl mx-auto justify-between">
           
           <div className="flex items-center gap-3 overflow-hidden">
@@ -65,8 +66,18 @@ export function PageLayout({
             )}
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            {rightAction}
+          <div className="flex items-center">
+            
+            <ThemeSwitcher />
+
+            {rightAction && (
+              <>
+                <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-2 sm:mx-3" />
+                <div className="flex items-center gap-2 shrink-0">
+                  {rightAction}
+                </div>
+              </>
+            )}
           </div>
 
         </div>
