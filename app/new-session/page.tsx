@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client" 
 import { toast } from "sonner" 
 import { cn } from "@/lib/utils"
-
 import { PageLayout } from "@/components/layout/page-layout"
 import { Stepper } from "@/components/ui/stepper"
 import { Button } from "@/components/ui/button"
@@ -27,6 +26,8 @@ import {
 
 import { DEFAULT_CONFIG, AppConfig } from "@/lib/preferences"
 import { SagCalculator } from "@/components/sag-calculator"
+
+import { useSync } from "@/lib/sync-provider"
 
 // --- TYPES ---
 type SetupData = {
@@ -125,6 +126,8 @@ const DEFAULT_DATA: SetupData = {
 }
 
 export default function NewSessionPage() {
+  const { saveData } = useSync()
+  
   const router = useRouter()
   const supabase = createClient()
   
@@ -137,10 +140,10 @@ export default function NewSessionPage() {
 
   const [config, setConfig] = useState<AppConfig>(DEFAULT_CONFIG)
   
-  // STATO CORRENTE (Quello che modifichi)
+  // STATO CORRENTE
   const [formData, setFormData] = useState<SetupData>(DEFAULT_DATA)
   
-  // DATI DI RIFERIMENTO (Snapshot della sessione precedente per confronto)
+  // DATI DI RIFERIMENTO
   const [referenceData, setReferenceData] = useState<SetupData | null>(null)
   
   const totalWeight = (formData.riderWeight || 0) + (formData.gearWeight || 0)
@@ -181,7 +184,6 @@ export default function NewSessionPage() {
               .maybeSingle()
 
             if (lastSessionData) {
-              // Mappiamo i dati dal DB al formato SetupData
               const technicalData = {
                 tiresModel: lastSessionData.tires_model,
                 tirePressF: lastSessionData.tire_pressure_f,
@@ -213,7 +215,6 @@ export default function NewSessionPage() {
                 trail: lastSessionData.trail
               }
 
-              // 1. Popoliamo il form corrente (senza tempi)
               setFormData(prev => ({
                 ...prev,
                 circuit: lastSessionData.track_days.circuit_name,
@@ -222,7 +223,6 @@ export default function NewSessionPage() {
                 split1: "", split2: "", split3: "", topSpeed: 0
               }))
 
-              // 2. Salviamo il riferimento (Per i "previousValue" degli stepper)
               setReferenceData({
                 ...DEFAULT_DATA,
                 ...technicalData
@@ -258,47 +258,54 @@ export default function NewSessionPage() {
     try {
       const today = new Date().toISOString().split('T')[0]
       
-      // 1. Cerca o Crea Track Day
-      let { data: trackDay } = await supabase
-        .from('track_days')
-        .select('id')
-        .eq('bike_id', bikeId)
-        .eq('date', today)
-        .eq('circuit_name', formData.circuit)
-        .maybeSingle()
+      let trackDayId = null;
 
-      if (!trackDay) {
-        const { data: newTrackDay, error: tdError } = await supabase
+      if (navigator.onLine) {
+        let { data: trackDay } = await supabase
           .from('track_days')
-          .insert({
-            bike_id: bikeId,
-            date: today,
-            circuit_name: formData.circuit,
-            rider_weight: formData.riderWeight
-          })
-          .select()
-          .single()
-        
-        if (tdError) throw tdError
-        trackDay = newTrackDay
+          .select('id')
+          .eq('bike_id', bikeId)
+          .eq('date', today)
+          .eq('circuit_name', formData.circuit)
+          .maybeSingle()
+
+        if (!trackDay) {
+          const { data: newTrackDay, error: tdError } = await supabase
+            .from('track_days')
+            .insert({
+              bike_id: bikeId,
+              date: today,
+              circuit_name: formData.circuit,
+              rider_weight: formData.riderWeight
+            })
+            .select()
+            .single()
+          
+          if (tdError) throw tdError
+          trackDay = newTrackDay
+        }
+        trackDayId = trackDay?.id
+      } else {
+        toast.warning("Sei offline: Verifica la sincronizzazione del Track Day")
       }
       
-      if (!trackDay) throw new Error("Errore creazione giornata.")
+      if (!trackDayId && navigator.onLine) throw new Error("Errore creazione giornata.")
 
-      // 2. Calcola numero sessione
-      const { count } = await supabase
-        .from('sessions')
-        .select('*', { count: 'exact', head: true })
-        .eq('track_day_id', trackDay.id)
-      
-      const nextSessionNumber = (count || 0) + 1
+      let nextSessionNumber = 1
+      if (navigator.onLine && trackDayId) {
+         const { count } = await supabase
+          .from('sessions')
+          .select('*', { count: 'exact', head: true })
+          .eq('track_day_id', trackDayId)
+         nextSessionNumber = (count || 0) + 1
+      }
+
       const finalName = formData.sessionName === "Nuova Sessione" 
         ? `Turno ${nextSessionNumber}` 
         : formData.sessionName
 
-      // 3. Inserisci Sessione
-      const { error } = await supabase.from('sessions').insert({
-        track_day_id: trackDay.id,
+      const sessionPayload = {
+        track_day_id: trackDayId,
         name: finalName,
         session_number: nextSessionNumber,
         
@@ -348,12 +355,14 @@ export default function NewSessionPage() {
         trail: formData.trail,
         
         notes: formData.notes
-      })
+      }
 
-      if (error) throw error
+      // 3. SALVATAGGIO TRAMITE SYNC PROVIDER (Gestisce Online/Offline)
+      const success = await saveData('sessions', sessionPayload)
 
-      toast.success("Turno Salvato! 🏁")
-      setTimeout(() => { router.push('/'); router.refresh() }, 1000)
+      if (success) {
+        setTimeout(() => { router.push('/'); router.refresh() }, 1000)
+      }
       
     } catch (error: any) {
       console.error(error)

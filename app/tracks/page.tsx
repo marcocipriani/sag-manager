@@ -21,7 +21,7 @@ export default function TracksPage() {
   const supabase = createClient()
   const [circuits, setCircuits] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [importing, setImporting] = useState(false) // Stato per il loading dell'import
+  const [importing, setImporting] = useState(false)
   
   const [searchTerm, setSearchTerm] = useState("")
 
@@ -73,7 +73,7 @@ export default function TracksPage() {
     try {
       const res = await importFamousCircuits()
       if (res?.success) {
-        const importedCount = res?.count ?? 0
+        const importedCount = res.count ?? 0
         if (importedCount > 0) {
           toast.success(`${importedCount} circuiti importati con successo!`)
         } else {
@@ -136,8 +136,12 @@ export default function TracksPage() {
         <span className="hidden sm:inline">Importa</span>
       </Button>
 
-      <Button variant="ghost" size="icon" onClick={() => setIsAddOpen(true)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white">
-        <Plus size={20} />
+      <Button 
+        size="sm" 
+        onClick={() => setIsAddOpen(true)} 
+        className="bg-green-600 hover:bg-green-700 text-white gap-2 h-9 px-3"
+      >
+        <Plus size={16} />
         <span className="hidden xs:inline">Nuovo</span>
       </Button>
     </div>
@@ -157,7 +161,6 @@ export default function TracksPage() {
     <PageLayout title="Gestione Circuiti" rightAction={headerAction} showBackButton>
       <div className="space-y-4 pb-20">
         
-        {/* BARRA DI RICERCA */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input 
@@ -168,7 +171,6 @@ export default function TracksPage() {
           />
         </div>
 
-        {/* LISTA FILTRATA */}
         {filteredCircuits.length === 0 ? (
           <div className="text-center py-10 text-slate-500">
             {searchTerm ? (
@@ -198,7 +200,6 @@ export default function TracksPage() {
               >
                 
                 {circuit.map_image_url && (
-                  // MODIFICA QUI: bg-white forzato per vedere le mappe nere
                   <div className="w-full h-32 relative bg-white border-b dark:border-slate-800">
                     <Image 
                       src={circuit.map_image_url} 
@@ -325,7 +326,6 @@ export default function TracksPage() {
               </Card>
             ))}
 
-            {/* BOTTONE AGGIUNGI NUOVO IN FONDO ALLA LISTA */}
             <button 
               onClick={() => setIsAddOpen(true)}
               className="w-full py-4 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl flex items-center justify-center gap-2 text-slate-500 hover:text-green-600 hover:border-green-500/50 hover:bg-green-50/50 dark:hover:bg-green-900/10 transition-all group"

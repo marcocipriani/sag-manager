@@ -4,7 +4,10 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { PreferencesProvider } from "@/components/preferences-provider"
+import { QueryProvider } from "@/components/query-provider"
+import { SyncProvider } from "@/lib/sync-provider"
 import { Suspense } from "react";
+import { NetworkStatus } from "@/components/network-status"
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -50,10 +53,15 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <Suspense fallback={null}>
-            <PreferencesProvider>
-              {children}
-              <Toaster position="top-center" />
-            </PreferencesProvider>
+            <QueryProvider>
+              <SyncProvider>
+                <PreferencesProvider>
+                  <NetworkStatus />
+                  {children}
+                  <Toaster position="top-center" />
+                </PreferencesProvider>
+              </SyncProvider>
+            </QueryProvider>
           </Suspense>
         </ThemeProvider>
       </body>
