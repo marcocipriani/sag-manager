@@ -5,18 +5,13 @@ import { PageLayout } from "@/components/layout/page-layout"
 import { BikeWidget } from "@/components/home/bike-widget"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { 
-  Plus, History, ChevronRight, Map, User, Calendar, MapPin, Loader2, Timer 
-} from "lucide-react"
+import { Plus, History, Clock, ChevronRight, Map, User, Calendar, MapPin, Loader2, Timer } from "lucide-react"
 
-// 1. Componente Principale
 async function Dashboard() {
   const supabase = await createClient()
-  
-  // A. Recupera Utente (per il titolo e i dati)
   const { data: { user } } = await supabase.auth.getUser()
-  
-  // B. Costruiamo il Titolo Personalizzato
+  if (!user) return null
+
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || "Pilota"
   
   const customTitle = (
@@ -33,7 +28,7 @@ async function Dashboard() {
     </Link>
   )
 
-  // C. Recupera le Moto
+  // Moto
   let bikes = null
   if (user) {
     const { data } = await supabase
@@ -45,7 +40,7 @@ async function Dashboard() {
     bikes = data
   }
 
-  // D. Recupera le Ultime 5 Sessioni
+  // Last sessions
   let recentSessions: any[] = []
   if (user) {
     const { data } = await supabase
@@ -60,9 +55,18 @@ async function Dashboard() {
     recentSessions = data || []
   }
 
+  // Formatting date and time
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })
+  }
+  
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+  }
+
   // E. Renderizza la Pagina Completa
   return (
-    <PageLayout title={customTitle} isHomePage rightAction={headerAction}>
+    <PageLayout title={customTitle} isHomePage rightAction={headerAction} className="max-w-lg">
       <div className="space-y-6 pb-20">
         
         {/* NUOVA SESSIONE */}
@@ -74,7 +78,7 @@ async function Dashboard() {
           </Link>
         </section>
 
-        {/* WIDGET MOTO */}
+        {/* MOTO ATTIVA */}
         <section>
           <BikeWidget bikes={bikes} />
         </section>
@@ -116,11 +120,11 @@ async function Dashboard() {
                             {session.name}
                           </p>
                           <div className="flex items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                            <span className="flex items-center gap-1"><MapPin size={10} /> {session.track_days?.circuit_name}</span>
+                            <span className="flex items-center gap-1"><MapPin size={12} /> {session.track_days?.circuit_name}</span>
                             <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
-                            <span className="flex items-center gap-1"><Calendar size={10} /> {new Date(session.created_at).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })}</span>
+                            <span className="flex items-center gap-1"><Calendar size={12} /> {formatDate(session.track_days.date)}</span>
                             <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
-                            <span className="flex items-center gap-1"><Timer size={10} /> {new Date(session.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</span>
+                            <span className="flex items-center gap-1"><Timer size={12} /> {formatTime(session.created_at)}</span>
                           </div>
                         </div>
                       </div>
@@ -149,13 +153,13 @@ async function Dashboard() {
 
 export default function Home() {
   return (
-    <Suspense fallback={
-      <div className="flex flex-col items-center justify-center h-screen bg-slate-50 dark:bg-slate-950 text-slate-400">
-        <Loader2 className="h-10 w-10 animate-spin text-green-600 mb-2" />
-        <p className="text-sm font-medium">Caricamento Dashboard...</p>
-      </div>
-    }>
-      <Dashboard />
-    </Suspense>
+      <Suspense fallback={
+        <div className="flex flex-col items-center justify-center h-screen bg-slate-50 dark:bg-slate-950 text-slate-400">
+          <Loader2 className="h-10 w-10 animate-spin text-green-600 mb-2" />
+          <p className="text-sm font-medium">Caricamento Dashboard...</p>
+        </div>
+      }>
+        <Dashboard />
+      </Suspense>
   )
 }

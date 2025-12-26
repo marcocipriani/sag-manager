@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button"
 import { ChevronLeft } from "lucide-react"
 import { ReactNode } from "react"
 import { ModeToggle } from "@/components/mode-toggle"
+import { usePreferences } from "@/components/preferences-provider"
 
 interface MobileHeaderProps {
-  title?: ReactNode // <--- CAMBIATO DA string A ReactNode
+  title?: ReactNode
   rightAction?: ReactNode 
   showBackButton?: boolean
   isHomePage?: boolean
@@ -23,6 +24,7 @@ export function MobileHeader({
 }: MobileHeaderProps) {
   const router = useRouter()
   const pathname = usePathname()
+  const { userName } = usePreferences()
   
   const shouldShowBack = showBackButton !== undefined ? showBackButton : pathname !== "/"
 
@@ -50,10 +52,15 @@ export function MobileHeader({
             />
           </Link>
         )}
-        
-        {/* Renderizziamo il titolo (che ora può essere colorato) */}
-        <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight truncate flex items-baseline gap-1">
+
+        <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight truncate flex items-baseline gap-1.5">
           {title}
+          
+          {!shouldShowBack && userName && (
+            <span className="text-sm font-medium text-slate-500 dark:text-slate-400 animate-in fade-in">
+              + {userName}
+            </span>
+          )}
         </h1>
       </div>
 

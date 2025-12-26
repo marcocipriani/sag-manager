@@ -17,21 +17,18 @@ interface CompareSheetProps {
 export function CompareSheet({ isOpen, onClose, sessionA, sessionB }: CompareSheetProps) {
   if (!sessionA || !sessionB) return null
 
-  // Ordiniamo cronologicamente: A è il vecchio, B è il nuovo
   const [oldS, newS] = new Date(sessionA.created_at) < new Date(sessionB.created_at) 
     ? [sessionA, sessionB] 
     : [sessionB, sessionA]
 
-  // Helper per renderizzare una riga di confronto
   const CompareRow = ({ label, keyName, unit }: { label: string, keyName: string, unit?: string }) => {
     const valA = oldS[keyName]
     const valB = newS[keyName]
     
-    // Se entrambi nulli o uguali, mostriamo in modo neutro
-    const isDiff = valA != valB // Usa != loose equality per catturare null vs undefined vs numeri simili
+    const isDiff = valA != valB
     
     return (
-      <div className={`flex items-center justify-between py-2 text-sm border-b border-slate-100 dark:border-slate-800 last:border-0 ${isDiff ? "bg-yellow-50/50 dark:bg-yellow-900/10 px-2 -mx-2 rounded-md" : ""}`}>
+      <div className={`flex items-center justify-between py-2 text-sm border-b border-slate-100 dark:border-slate-800 last:border-0 ${isDiff ? "bg-yellow-50/50 dark:bg-yellow-900/20 px-2 -mx-2 rounded-md" : ""}`}>
         <span className="text-slate-500 w-1/3 truncate">{label}</span>
         
         <div className="flex items-center w-2/3 justify-end gap-3">
@@ -56,8 +53,8 @@ export function CompareSheet({ isOpen, onClose, sessionA, sessionB }: CompareShe
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="w-full sm:max-w-md dark:bg-slate-950 dark:border-slate-800 p-0">
-        <SheetHeader className="p-4 bg-slate-50 dark:bg-slate-900 border-b dark:border-slate-800">
+      <SheetContent className="w-full sm:max-w-md dark:bg-slate-950 dark:border-slate-800 p-0 border-l border-slate-200">
+        <SheetHeader className="p-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
           <SheetTitle className="flex items-center justify-between text-base dark:text-white">
             <span>Confronto Setup</span>
             <Badge variant="outline" className="text-[10px] font-normal gap-1 dark:border-slate-700 dark:text-slate-300">
@@ -69,7 +66,6 @@ export function CompareSheet({ isOpen, onClose, sessionA, sessionB }: CompareShe
         <ScrollArea className="h-[calc(100vh-80px)] p-4">
           <div className="space-y-6 pb-10">
             
-            {/* Header Visivo */}
             <div className="grid grid-cols-2 gap-4 text-center mb-6">
               <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                 <div className="text-[10px] text-slate-500 uppercase font-bold">Prima</div>
@@ -83,7 +79,7 @@ export function CompareSheet({ isOpen, onClose, sessionA, sessionB }: CompareShe
 
             {/* SEZIONE GOMME */}
             <section>
-              <h4 className="font-bold text-sm mb-2 text-green-600 uppercase tracking-wider">Gomme</h4>
+              <h4 className="font-bold text-xs mb-2 text-green-600 uppercase tracking-wider">Gomme</h4>
               <CompareRow label="Press. Ant" keyName="tire_pressure_f" unit="bar" />
               <CompareRow label="Press. Post" keyName="tire_pressure_r" unit="bar" />
               <CompareRow label="Modello" keyName="tires_model" />
@@ -91,18 +87,18 @@ export function CompareSheet({ isOpen, onClose, sessionA, sessionB }: CompareShe
 
             {/* SEZIONE FORCELLA */}
             <section>
-              <h4 className="font-bold text-sm mb-2 text-green-600 uppercase tracking-wider">Forcella</h4>
+              <h4 className="font-bold text-xs mb-2 text-green-600 uppercase tracking-wider">Forcella</h4>
               <CompareRow label="Compressione" keyName="fork_comp" unit="clk" />
               <CompareRow label="Estensione" keyName="fork_reb" unit="clk" />
               <CompareRow label="Precarico" keyName="fork_preload" unit="giri" />
               <CompareRow label="Molla" keyName="fork_spring" unit="K" />
               <CompareRow label="Olio" keyName="fork_oil_level" unit="mm" />
               <CompareRow label="Sfilamento" keyName="fork_height" unit="mm" />
-            </section> {/* <--- QUI ERA L'ERRORE: Ora è chiuso correttamente */}
+            </section>
 
             {/* SEZIONE MONO */}
             <section>
-              <h4 className="font-bold text-sm mb-2 text-green-600 uppercase tracking-wider">Mono</h4>
+              <h4 className="font-bold text-xs mb-2 text-green-600 uppercase tracking-wider">Mono</h4>
               <CompareRow label="Compressione" keyName="shock_comp" unit="clk" />
               <CompareRow label="Estensione" keyName="shock_reb" unit="clk" />
               <CompareRow label="Precarico" keyName="shock_preload" unit="mm" />
@@ -112,7 +108,7 @@ export function CompareSheet({ isOpen, onClose, sessionA, sessionB }: CompareShe
 
              {/* SEZIONE GEOMETRIA */}
              <section>
-              <h4 className="font-bold text-sm mb-2 text-green-600 uppercase tracking-wider">Geometria</h4>
+              <h4 className="font-bold text-xs mb-2 text-green-600 uppercase tracking-wider">Geometria</h4>
               <CompareRow label="Interasse" keyName="wheelbase" unit="mm" />
               <CompareRow label="Inclinazione" keyName="rake" unit="°" />
               <CompareRow label="Trail" keyName="trail" unit="mm" />

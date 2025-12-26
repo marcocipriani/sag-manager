@@ -6,6 +6,7 @@ import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ThemeSwitcher } from "@/components/theme-switcher"
+import { usePreferences } from "@/components/preferences-provider"
 
 interface PageLayoutProps {
   children: React.ReactNode
@@ -23,6 +24,8 @@ export function PageLayout({
   className 
 }: PageLayoutProps) {
   
+  const { userName } = usePreferences()
+
   const handleBack = (e: React.MouseEvent) => {
     e.preventDefault()
     if (window.history.length > 1) {
@@ -59,9 +62,16 @@ export function PageLayout({
                      className="object-contain"
                    />
                 </div>
-                <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-                  SagManager
-                </span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+                    SagManager
+                  </span>
+                  {userName && (
+                    <span className="text-sm font-medium text-slate-500 dark:text-slate-400 animate-in fade-in">
+                      + {userName}
+                    </span>
+                  )}
+                </div>
               </div>
             )}
           </div>

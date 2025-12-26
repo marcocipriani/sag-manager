@@ -10,7 +10,7 @@ async function HistoryContent() {
   const { data: rawSessions, error } = await supabase
     .from('sessions')
     .select(`
-      id, name, created_at, best_lap,
+      *,
       track_days!inner (
         id, date, circuit_name,
         bike:bikes!inner ( id, brand, model, color, user_id )
@@ -57,7 +57,7 @@ async function HistoryContent() {
 export default function HistoryPage() {
   return (
     <Suspense fallback={
-      <div className="flex h-screen flex-col items-center justify-center text-slate-400 bg-slate-50 dark:bg-black">
+      <div className="flex h-screen flex-col items-center justify-center text-slate-400 bg-slate-50 dark:bg-slate-950">
         <Loader2 className="h-8 w-8 animate-spin text-green-600 mb-2" />
         <p className="text-sm">Analisi tempi...</p>
       </div>
