@@ -18,13 +18,15 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
 } from "@/components/ui/select"
 import { 
-  User, LogOut, Moon, Sun, FileText, Shield, Sliders, Github, Loader2, Fingerprint, ChevronRight, BookOpen 
+  User, LogOut, Moon, Sun, Sliders, Github, Fingerprint, ChevronRight, BookOpen 
 } from "lucide-react"
 import { toast } from "sonner"
 import { EditProfileDialog } from "./edit-profile-dialog"
+import { usePreferences } from "@/components/preferences-provider" // <--- Import Context
 
 export default function SettingsPage() {
   const { setTheme, theme } = useTheme()
+  const { timeFormat, setTimeFormat } = usePreferences() // <--- Usa il context
   const supabase = createClient()
   
   // 1. STATO MOUNTED (Per fixare l'errore di idratazione)
@@ -165,7 +167,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="grid gap-6">
           
-          {/* TEMA - CORRETTO PER EVITARE HYDRATION ERROR */}
+          {/* TEMA */}
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <div className="font-medium text-slate-900 dark:text-slate-200">Tema</div>
@@ -176,7 +178,6 @@ export default function SettingsPage() {
                 variant="ghost" 
                 size="icon"
                 onClick={() => setTheme('light')}
-                // Usiamo 'mounted && theme' per assicurarci che il controllo avvenga solo lato client
                 className={`h-8 w-8 rounded-md transition-all ${mounted && theme === 'light' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400'}`}
               >
                 <Sun size={16} />
@@ -185,11 +186,29 @@ export default function SettingsPage() {
                 variant="ghost" 
                 size="icon"
                 onClick={() => setTheme('dark')}
-                // Usiamo 'mounted && theme'
                 className={`h-8 w-8 rounded-md transition-all ${mounted && theme === 'dark' ? 'bg-slate-800 shadow-sm text-white' : 'text-slate-400'}`}
               >
                 <Moon size={16} />
               </Button>
+            </div>
+          </div>
+
+          <Separator className="dark:bg-slate-800" />
+
+          {/* FORMATO ORARIO (NUOVO) */}
+          <div className="flex items-center justify-between">
+             <div className="space-y-0.5">
+              <div className="font-medium text-slate-900 dark:text-slate-200">Formato Orario</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">Visualizzazione ore (12h / 24h)</div>
+            </div>
+            <div className="w-24">
+              <Select value={timeFormat} onValueChange={(val) => setTimeFormat(val as '12h' | '24h')}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Format" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="24h">24h</SelectItem>
+                  <SelectItem value="12h">12h</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -250,8 +269,6 @@ export default function SettingsPage() {
                 <ChevronRight size={16} className="text-slate-300" />
               </div>
             </Link>
-
-            {/* Qui potresti aggiungere in futuro "Privacy Policy" o "Termini" */}
 
           </CardContent>
         </Card>

@@ -3,18 +3,18 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 
-// TOGGLE PREFERITO
+// PREFERITO
 export async function toggleFavoriteCircuit(circuitId: string, currentState: boolean) {
   const supabase = await createClient()
   
   const { error } = await supabase
     .from('circuits')
-    .update({ is_favorite: !currentState }) // Inverte lo stato attuale
+    .update({ is_favorite: !currentState })
     .eq('id', circuitId)
   
   if (error) return { error: "Errore aggiornamento" }
   
-  revalidatePath("/tracks") // Ricarica la lista per aggiornare l'ordine
+  revalidatePath("/tracks")
   return { success: true }
 }
 
@@ -76,4 +76,50 @@ export async function deleteCircuit(circuitId: string) {
   
   revalidatePath("/tracks")
   return { success: true }
+}
+
+export async function importFamousCircuits() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return { success: false, message: "Utente non loggato" }
+
+  // Lista predefinita dei principali circuiti italiani
+  const famousTracks = [
+    { name: "Mugello Circuit", location: "Scarperia e San Piero, FI", length_meters: 5245 },
+    { name: "Misano World Circuit", location: "Misano Adriatico, RN", length_meters: 4226 },
+    { name: "Autodromo di Imola", location: "Imola, BO", length_meters: 4909 },
+    { name: "Autodromo di Monza", location: "Monza, MB", length_meters: 5793 },
+    { name: "Vallelunga", location: "Campagnano di Roma, RM", length_meters: 4085 },
+    { name: "Cremona Circuit", location: "San Martino del Lago, CR", length_meters: 3702 },
+    { name: "Autodromo del Levante", location: "Binetto, BA", length_meters: 1577 },
+    { name: "Tazio Nuvolari", location: "Cervesina, PV", length_meters: 2805 },
+    { name: "Autodromo dell'Umbria", location: "Magione, PG", length_meters: 2507 },
+    { name: "Autodromo di Modena", location: "Modena, MO", length_meters: 2007 },
+  ]
+
+  let addedCount = 0
+
+  for (const track of famousTracks) {
+    const { data: existing } = await supabase
+      .from('circuits')
+      .select('id')
+      .eq('user_id', user.id)
+      .ilike('name', track.name) 
+      .maybeSingle()
+
+    if (!existing) {
+      await supabase.from('circuits').insert({
+        user_id: user.id,
+        name: track.name,
+        location: track.location,
+        length_meters: track.length_meters,
+        is_favorite: false
+      })
+      addedCount++
+    }
+  }
+
+  revalidatePath('/tracks')
+  return { success: true, count: addedCount }
 }

@@ -119,12 +119,13 @@ export default function GaragePage() {
       showBackButton={true}
       rightAction={
         <AddBikeDialog>
-          <Button size="icon" className="bg-green-600 hover:bg-green-700 text-white rounded-md h-9 w-9 shadow-sm border-0">
+          <Button variant="ghost" size="icon" className="text-slate-400 hover:text-slate-900 dark:hover:text-white">
             <Plus size={20} />
           </Button>
         </AddBikeDialog>
       }
     >
+
       <Suspense fallback={
         <div className="flex flex-col items-center justify-center pt-20 text-slate-400">
           <Loader2 className="h-8 w-8 animate-spin text-green-600 mb-2" />

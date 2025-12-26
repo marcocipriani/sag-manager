@@ -10,10 +10,11 @@ import { usePreferences } from "@/components/preferences-provider"
 
 interface PageLayoutProps {
   children: React.ReactNode
-  title?: string 
+  title?: React.ReactNode 
   showBackButton?: boolean
   rightAction?: React.ReactNode
   className?: string
+  isHomePage?: boolean
 }
 
 export function PageLayout({ 
