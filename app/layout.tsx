@@ -4,27 +4,28 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { PreferencesProvider } from "@/components/preferences-provider"
+import { Suspense } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 
-// 1. Configurazione Viewport
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  userScalable: false, // Disabilita zoom per feel "App Nativa"
+  userScalable: false,
   themeColor: "#020617",
 };
 
-// 2. Configurazione Metadata e PWA
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://sagmanager.vercel.app"), 
+  
   title: "SagManager",
   description: "Il tuo garage digitale per i setup da pista",
-  manifest: "/manifest.webmanifest", 
   
   icons: {
-    icon: "/icon.svg",
-    apple: "/apple-icon.png", 
+    icon: "/icon-192.png",
+    shortcut: "/icon-192.png",
+    apple: "/apple-icon.png",
   },
   
   appleWebApp: {
@@ -48,10 +49,12 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <PreferencesProvider>
-            {children}
-            <Toaster position="top-center" />
-          </PreferencesProvider>
+          <Suspense fallback={null}>
+            <PreferencesProvider>
+              {children}
+              <Toaster position="top-center" />
+            </PreferencesProvider>
+          </Suspense>
         </ThemeProvider>
       </body>
     </html>

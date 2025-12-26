@@ -100,7 +100,7 @@ async function Dashboard() {
             </h3>
             {recentSessions.length > 0 && (
               <Link href="/history" className="text-xs text-slate-500 font-medium flex items-center hover:text-green-600 transition-colors">
-                Tutte le Attività <ChevronRight size={12} />
+                Tutte le attività <ChevronRight size={12} />
               </Link>
             )}
           </div>
@@ -174,7 +174,7 @@ async function Dashboard() {
         <section>
           <Link href="/tracks">
             <Button variant="outline" className="w-full h-12 border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 gap-2 rounded-xl">
-              <Map size={18} /> Gestione Circuiti
+              <Map size={18} /> Gestione circuiti
             </Button>
           </Link>
         </section>
