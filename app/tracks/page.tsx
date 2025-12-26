@@ -72,9 +72,10 @@ export default function TracksPage() {
     setImporting(true)
     try {
       const res = await importFamousCircuits()
-      if (res.success) {
-        if (res.count > 0) {
-          toast.success(`${res.count} circuiti importati con successo!`)
+      if (res?.success) {
+        const importedCount = res?.count ?? 0
+        if (importedCount > 0) {
+          toast.success(`${importedCount} circuiti importati con successo!`)
         } else {
           toast.info("Tutti i circuiti famosi sono già presenti.")
         }
