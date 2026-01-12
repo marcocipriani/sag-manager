@@ -18,16 +18,18 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
 } from "@/components/ui/select"
 import { 
-  User, LogOut, Moon, Sun, Sliders, Github, Fingerprint, ChevronRight, BookOpen 
+  User, LogOut, Moon, Sun, Sliders, Github, Fingerprint, ChevronRight, BookOpen, Download  
 } from "lucide-react"
 import { toast } from "sonner"
 import { EditProfileDialog } from "./edit-profile-dialog"
-import { usePreferences } from "@/components/preferences-provider" // <--- Import Context
+import { usePreferences } from "@/components/preferences-provider"
+import { usePwaInstall } from "@/hooks/use-pwa-install"
 
 export default function SettingsPage() {
   const { setTheme, theme } = useTheme()
-  const { timeFormat, setTimeFormat } = usePreferences() // <--- Usa il context
+  const { timeFormat, setTimeFormat } = usePreferences()
   const supabase = createClient()
+  const { isInstallable, install } = usePwaInstall()
   
   // 1. STATO MOUNTED (Per fixare l'errore di idratazione)
   const [mounted, setMounted] = useState(false)
@@ -44,7 +46,6 @@ export default function SettingsPage() {
   const [loadingConfig, setLoadingConfig] = useState(true)
 
   useEffect(() => {
-    // Appena il componente è montato nel browser, impostiamo true
     setMounted(true)
 
     const init = async () => {
@@ -120,7 +121,6 @@ export default function SettingsPage() {
   return (
     <PageLayout title="Impostazioni" showBackButton>
       
-      {/* 1. UTENTE REALE */}
       <Card className="dark:bg-slate-900 dark:border-slate-800 mb-6 overflow-hidden">
         <CardHeader className="pb-4 flex flex-row items-center gap-4">
           <div className="h-16 w-16 shrink-0 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center border-2 border-slate-200 dark:border-slate-700 overflow-hidden relative">
@@ -160,14 +160,12 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* 2. PREFERENZE APP */}
       <Card className="dark:bg-slate-900 dark:border-slate-800 mb-6">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg dark:text-white">Preferenze</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-6">
           
-          {/* TEMA */}
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <div className="font-medium text-slate-900 dark:text-slate-200">Tema</div>
@@ -195,7 +193,6 @@ export default function SettingsPage() {
 
           <Separator className="dark:bg-slate-800" />
 
-          {/* FORMATO ORARIO (NUOVO) */}
           <div className="flex items-center justify-between">
              <div className="space-y-0.5">
               <div className="font-medium text-slate-900 dark:text-slate-200">Formato Orario</div>
@@ -214,7 +211,6 @@ export default function SettingsPage() {
 
           <Separator className="dark:bg-slate-800" />
           
-          {/* UNITÀ GOMME */}
           <div className="flex items-center justify-between">
              <div className="space-y-0.5">
               <div className="font-medium text-slate-900 dark:text-slate-200">Unità Pressione</div>
@@ -237,7 +233,6 @@ export default function SettingsPage() {
 
           <Separator className="dark:bg-slate-800" />
 
-          {/* CONFIG AVANZATA */}
           <Link href="/settings/parameters">
             <Button variant="outline" className="w-full justify-start h-10 text-sm gap-2 border-slate-200 dark:border-slate-700">
               <Sliders size={16} /> Configurazione Campi Avanzata
@@ -247,7 +242,25 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* 3. INFO LEGALI */}
+      {isInstallable && (
+        <Card className="dark:bg-slate-900 dark:border-slate-800 mb-6 border-blue-200 bg-blue-50 dark:bg-blue-900/10">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-lg">
+                <Download size={20} />
+              </div>
+              <div className="text-sm">
+                <div className="font-bold text-slate-900 dark:text-blue-100">Installa app</div>
+                <div className="text-slate-500 dark:text-blue-300/70">Migliore esperienza</div>
+              </div>
+            </div>
+            <Button onClick={install} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white border-0">
+              Installa
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="dark:bg-slate-900 dark:border-slate-800">
           <CardHeader>
             <CardTitle>Supporto</CardTitle>
@@ -273,7 +286,6 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-      {/* 4. LOGOUT & FOOTER */}
       <div className="pt-2 pb-10">
         <Button 
           variant="destructive" 

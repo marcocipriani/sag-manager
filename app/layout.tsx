@@ -20,21 +20,18 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://sagmanager.vercel.app"), 
-  
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://sagmanager.vercel.app"),
   title: "SagManager",
-  description: "Il tuo garage digitale per i setup da pista",
-  
-  icons: {
-    icon: "/icon-192.png",
-    shortcut: "/icon-192.png",
-    apple: "/apple-icon.png",
-  },
-  
+  description: "Gestione professionale setup moto",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "SagManager",
+  },
+  icons: {
+    icon: "/icon-192.png",
+    shortcut: "/icon-192.png",
+    apple: "/apple-icon.png",
   },
 };
 
